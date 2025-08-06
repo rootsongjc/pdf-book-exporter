@@ -1,0 +1,226 @@
+%% Emoji-specific LaTeX commands and environments
+%% This file provides comprehensive emoji support with sizing, coloring, and context-aware rendering
+
+% --- Core Emoji Commands ---
+
+% Enhanced \emoji{} command with fallback support
+\newcommand{\customemoji}[1]{%
+  \ifcsname emojifont\endcsname%
+    {{\emojifont #1}}%
+  \else%
+    \typeout{Warning: Emoji font not available, using fallback}%
+    #1%
+  \fi%
+}
+
+% --- Emoji Sizing Commands ---
+
+% Define emoji size presets
+\newcommand{\emojisize}[1]{\fontsize{#1}{#1}\selectfont}
+
+% Predefined emoji sizes
+\newcommand{\emojitiny}[1]{\begingroup\emojisize{8pt}\emoji{#1}\endgroup}
+\newcommand{\emojismall}[1]{\begingroup\emojisize{10pt}\emoji{#1}\endgroup}
+\newcommand{\emojinormal}[1]{\begingroup\emojisize{12pt}\emoji{#1}\endgroup}
+\newcommand{\emojilarge}[1]{\begingroup\emojisize{14pt}\emoji{#1}\endgroup}
+\newcommand{\emojiLarge}[1]{\begingroup\emojisize{17pt}\emoji{#1}\endgroup}
+\newcommand{\emojiLARGE}[1]{\begingroup\emojisize{20pt}\emoji{#1}\endgroup}
+\newcommand{\emojihuge}[1]{\begingroup\emojisize{25pt}\emoji{#1}\endgroup}
+\newcommand{\emojiHuge}[1]{\begingroup\emojisize{30pt}\emoji{#1}\endgroup}
+
+% Custom size emoji command
+\newcommand{\emojiwithsize}[2]{\begingroup\emojisize{#2}\emoji{#1}\endgroup}
+
+% --- Emoji Color Commands ---
+
+% Note: Most emoji fonts are color fonts and don't respond to LaTeX color commands
+% These commands are provided for fallback scenarios or special cases
+
+\newcommand{\emojicolored}[2]{%
+  \ifcsname emojifont\endcsname%
+    {{\emojifont\textcolor{#1}{#2}}}%
+  \else%
+    \textcolor{#1}{#2}%
+  \fi%
+}
+
+% --- Context-Aware Emoji Commands ---
+
+% Emoji in headings - automatically sized for heading level
+\newcommand{\emojiheading}[2][]{%
+  \ifx\@currsize\Huge%
+    \emojihuge{#2}% For \chapter
+  \else\ifx\@currsize\LARGE%
+    \emojiLARGE{#2}% For \section
+  \else\ifx\@currsize\Large%
+    \emojilarge{#2}% For \subsection
+  \else\ifx\@currsize\large%
+    \emojinormal{#2}% For \subsubsection
+  \else%
+    \emoji{#2}% Default size
+  \fi\fi\fi\fi%
+}
+
+% Emoji in tables - optimized for table context
+\newcommand{\emojiintable}[1]{%
+  \begingroup%
+  \emojisize{10pt}% Smaller size for tables
+  \emoji{#1}%
+  \endgroup%
+}
+
+% Emoji in lists - consistent with list text
+\newcommand{\emojiinlist}[1]{%
+  \begingroup%
+  \emojisize{11pt}% Slightly smaller than normal text
+  \emoji{#1}%
+  \endgroup%
+}
+
+% Emoji in captions - matching caption font size
+\newcommand{\emojicaption}[1]{%
+  \begingroup%
+  \emojisize{10pt}% Caption size
+  \emoji{#1}%
+  \endgroup%
+}
+
+% --- Fallback Text Representations ---
+
+% Define fallback text for common emojis when emoji font is not available
+\newcommand{\emojifallback}[2]{%
+  \ifcsname emojifont\endcsname%
+    \emoji{#1}%
+  \else%
+    \texttt{#2}% Use monospace for fallback text
+  \fi%
+}
+
+% Common emoji fallbacks (only define if not already defined)
+\providecommand{\emojicheck}{\emojifallback{✅}{[CHECK]}}
+\providecommand{\emojicross}{\emojifallback{❌}{[X]}}
+\providecommand{\emojiwarning}{\emojifallback{⚠️}{[WARNING]}}
+\providecommand{\emojinote}{\emojifallback{📝}{[NOTE]}}
+\providecommand{\emojitool}{\emojifallback{🔧}{[TOOL]}}
+\providecommand{\emojiidea}{\emojifallback{💡}{[IDEA]}}
+\providecommand{\emojirocket}{\emojifallback{🚀}{[ROCKET]}}
+\providecommand{\emojichart}{\emojifallback{📊}{[CHART]}}
+\providecommand{\emojitarget}{\emojifallback{🎯}{[TARGET]}}
+\providecommand{\emojistar}{\emojifallback{⭐}{[STAR]}}
+\newcommand{\emojiheart}{\emojifallback{❤️}{[HEART]}}
+\newcommand{\emojithumbsup}{\emojifallback{👍}{[THUMBS-UP]}}
+\newcommand{\emojithumbsdown}{\emojifallback{👎}{[THUMBS-DOWN]}}
+\newcommand{\emojifire}{\emojifallback{🔥}{[FIRE]}}
+\newcommand{\emojiparty}{\emojifallback{🎉}{[PARTY]}}
+\newcommand{\emojiclock}{\emojifallback{🕐}{[CLOCK]}}
+\newcommand{\emojiphone}{\emojifallback{📱}{[PHONE]}}
+\newcommand{\emojicomputer}{\emojifallback{💻}{[COMPUTER]}}
+\newcommand{\emojibook}{\emojifallback{📚}{[BOOK]}}
+\newcommand{\emojiemail}{\emojifallback{📧}{[EMAIL]}}
+\newcommand{\emojilink}{\emojifallback{🔗}{[LINK]}}
+\newcommand{\emojikey}{\emojifallback{🔑}{[KEY]}}
+\newcommand{\emojilock}{\emojifallback{🔒}{[LOCK]}}
+\newcommand{\emojiunlock}{\emojifallback{🔓}{[UNLOCK]}}
+\newcommand{\emojisearch}{\emojifallback{🔍}{[SEARCH]}}
+\newcommand{\emojidownload}{\emojifallback{⬇️}{[DOWNLOAD]}}
+\newcommand{\emojiupload}{\emojifallback{⬆️}{[UPLOAD]}}
+
+% --- Emoji Environments ---
+
+% Environment for emoji-rich content with optimized spacing
+\newenvironment{emojitext}{%
+  \begingroup%
+  \setlength{\parskip}{4pt plus 1pt minus 1pt}% Slightly more space between paragraphs
+  \renewcommand{\emoji}[1]{%
+    \ifcsname emojifont\endcsname%
+      {{\emojifont ##1}}%
+    \else%
+      ##1%
+    \fi%
+  }%
+}{%
+  \endgroup%
+}
+
+% Environment for emoji lists with proper alignment
+\newenvironment{emojiitemize}{%
+  \begin{itemize}[leftmargin=2em,itemsep=2pt,parsep=0pt]%
+  \renewcommand{\labelitemi}{\emoji{•}}% Use emoji bullet if available
+}{%
+  \end{itemize}%
+}
+
+% Environment for emoji tables with optimized rendering
+\newenvironment{emojitabular}{%
+  \begingroup%
+  \let\originalemoji\emoji%
+  \renewcommand{\emoji}[1]{%
+    \begingroup%
+    \emojisize{9pt}% Smaller size for table context
+    \originalemoji{##1}%
+    \endgroup%
+  }%
+}{%
+  \endgroup%
+}
+
+% --- Advanced Emoji Commands ---
+
+% Emoji with tooltip-like fallback (for accessibility)
+\newcommand{\emojiwithalt}[2]{%
+  \emoji{#1}%
+  \ifcsname emojifont\endcsname%
+  \else%
+    \footnote{#2}% Add footnote with description if no emoji font
+  \fi%
+}
+
+% Inline emoji with automatic spacing adjustment
+\newcommand{\emojiinline}[1]{%
+  \,\emoji{#1}\,%  Add thin spaces around emoji
+}
+
+% Emoji sequence for complex emoji combinations
+\newcommand{\emojisequence}[1]{%
+  \ifcsname emojifont\endcsname%
+    {{\emojifont #1}}%
+  \else%
+    #1%
+  \fi%
+}
+
+% --- Emoji Debugging and Diagnostics ---
+
+% Command to test emoji rendering
+\newcommand{\emojitestrender}[1]{%
+  \typeout{Testing emoji rendering for: #1}%
+  \ifcsname emojifont\endcsname%
+    \typeout{Emoji font available: \meaning\emojifont}%
+    {{\emojifont #1}}%
+  \else%
+    \typeout{Warning: No emoji font available}%
+    \texttt{[NO-EMOJI-FONT]}%
+  \fi%
+}
+
+% Command to show emoji font information
+\newcommand{\emojifontinfo}{%
+  \ifcsname emojifont\endcsname%
+    \typeout{Emoji font family: \meaning\emojifont}%
+    \texttt{Emoji font available}%
+  \else%
+    \typeout{No emoji font configured}%
+    \texttt{No emoji font}%
+  \fi%
+}
+
+% --- Compatibility Commands ---
+
+% Ensure compatibility with existing emoji usage
+\providecommand{\greencheckmark}{\emojicheck}
+\providecommand{\redcrossmark}{\emojicross}
+\providecommand{\orangewarningmark}{\emojiwarning}
+
+% Note: Legacy emoji commands are defined in the main template to avoid conflicts
+
+% --- End of Emoji Commands ---

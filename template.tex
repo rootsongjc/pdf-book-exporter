@@ -1,0 +1,1688 @@
+\documentclass[12pt,a4paper,openany]{book}
+
+% --- Packages ---
+\usepackage{iftex}
+\usepackage{eso-pic}  % For background image placement
+\usepackage{xstring}  % For string comparison in conditionals
+
+% Engine compatibility check and optimization recommendations
+% The PDF generation tool automatically selects the optimal LaTeX engine:
+% - LuaLaTeX: Used when emoji support is enabled (--emoji flag)
+% - XeLaTeX: Used for standard multilingual content without emoji
+%
+% Engine selection rationale:
+% - LuaLaTeX provides better emoji font handling and Unicode support
+% - XeLaTeX offers faster compilation for non-emoji content
+% - Both engines support CJK (Chinese, Japanese, Korean) text rendering
+$if(emoji)$
+\ifluatex\else
+  \PackageWarning{template}{Emoji and multilingual support works best with LuaLaTeX engine. Consider using --engine=lualatex.}
+\fi
+$endif$
+
+% LuaLaTeX multilingual font configuration
+% 
+% LuaLaTeX provides superior font handling through:
+% 1. HarfBuzz text shaping engine for complex scripts
+% 2. Native OpenType feature support
+% 3. Better Unicode normalization
+% 4. Advanced font fallback mechanisms
+%
+% HarfBuzz renderer benefits:
+% - Proper CJK character shaping and spacing
+% - Complex script support (Arabic, Devanagari, etc.)
+% - Advanced typography features (ligatures, kerning)
+% - Emoji and color font support
+\ifluatex
+  \usepackage{fontspec}
+  \defaultfontfeatures{Renderer=HarfBuzz}
+
+  % Configure main font with comprehensive CJK support
+  % 
+  % Font selection priority:
+  % 1. Source Han Sans SC - Adobe/Google's pan-CJK font family
+  %    - Covers Simplified Chinese, Japanese, Korean
+  %    - Excellent Unicode coverage and glyph quality
+  %    - Professional typography features
+  % 2. Noto Sans CJK SC - Google's alternative CJK solution
+  %    - Similar coverage to Source Han Sans
+  %    - Open source and widely available
+  % 3. PingFang SC - Apple's system font for Chinese (macOS)
+  %    - High-quality rendering on Apple systems
+  %    - Optimized for screen and print display
+  \IfFontExistsTF{Source Han Sans SC}{
+    \setmainfont{Source Han Sans SC}[
+      Scale=1.0,
+      UprightFont=Source Han Sans SC Regular,
+      BoldFont=Source Han Sans SC Bold,
+      ItalicFont=Source Han Sans SC Regular,
+      BoldItalicFont=Source Han Sans SC Bold,
+      Renderer=HarfBuzz
+    ]
+    \setsansfont{Source Han Sans SC}[
+      Scale=1.0,
+      UprightFont=Source Han Sans SC Regular,
+      BoldFont=Source Han Sans SC Bold,
+      Renderer=HarfBuzz
+    ]
+    \typeout{Set main font to Source Han Sans SC for comprehensive CJK support}
+  }{
+    \IfFontExistsTF{Noto Sans CJK SC}{
+      \setmainfont{Noto Sans CJK SC}[
+        Scale=1.0,
+        BoldFont=Noto Sans CJK SC Bold,
+        Renderer=HarfBuzz
+      ]
+      \setsansfont{Noto Sans CJK SC}[
+        Scale=1.0,
+        BoldFont=Noto Sans CJK SC Bold,
+        Renderer=HarfBuzz
+      ]
+      \typeout{Set main font to Noto Sans CJK SC}
+    }{
+      \IfFontExistsTF{PingFang SC}{
+        \setmainfont{PingFang SC}[
+          Scale=1.0,
+          BoldFont=PingFang SC Semibold,
+          Renderer=HarfBuzz
+        ]
+        \typeout{Set main font to PingFang SC (macOS fallback)}
+      }{
+        \typeout{Warning: No suitable CJK font found}
+      }
+    }
+  }
+\else
+  % XeLaTeX fallback configuration
+  % 
+  % XeLaTeX approach for CJK text:
+  % 1. fontspec package for OpenType font support
+  % 2. xeCJK package for Chinese, Japanese, Korean text handling
+  % 3. Automatic font switching between Latin and CJK scripts
+  % 4. Maintains compatibility with older LaTeX documents
+  %
+  % XeLaTeX benefits:
+  % - Faster compilation than LuaLaTeX for simple documents
+  % - Wide package compatibility
+  % - Stable and well-tested CJK support
+  \usepackage{fontspec}
+  \usepackage{xeCJK}
+
+  % Configure main fonts for XeLaTeX
+  \IfFontExistsTF{Source Han Sans SC}{
+    \setmainfont{Source Han Sans SC}[
+      Scale=1.0,
+      BoldFont=Source Han Sans SC Bold,
+      Renderer=HarfBuzz
+    ]
+    \setCJKmainfont{Source Han Sans SC}[
+      Scale=1.0,
+      BoldFont=Source Han Sans SC Bold
+    ]
+    \typeout{Set fonts to Source Han Sans SC (XeLaTeX)}
+  }{
+    \typeout{Using default fonts (XeLaTeX)}
+  }
+\fi
+
+
+% Enhanced multilingual font support (CJK and emoji)
+% 
+% This section configures specialized fonts for:
+% 1. Japanese text (Hiragana, Katakana, Kanji)
+% 2. Korean text (Hangul, Hanja)
+% 3. Emoji and pictographic symbols
+% 4. Proper font fallback chains
+%
+% Benefits of separate font families:
+% - Language-specific glyph variants (e.g., Chinese vs Japanese Kanji)
+% - Optimized character spacing and metrics
+% - Cultural typography preferences
+% - Better rendering quality for each script
+\ifluatex
+  % LuaLaTeX multilingual font configuration
+  % Uses newfontfamily to define specialized font commands
+  % 配置日文字体
+  \IfFontExistsTF{Source Han Sans JP}{
+    \newfontfamily\jpfont{Source Han Sans JP}[
+      BoldFont=Source Han Sans JP Bold,
+      Renderer=HarfBuzz
+    ]
+    \typeout{Set Japanese font to Source Han Sans JP}
+  }{
+    \IfFontExistsTF{Hiragino Sans}{
+      \newfontfamily\jpfont{Hiragino Sans}[
+        BoldFont=Hiragino Sans W6,
+        Renderer=HarfBuzz
+      ]
+      \typeout{Set Japanese font to Hiragino Sans}
+    }{
+      \let\jpfont\rmfamily
+      \typeout{No Japanese font available, using main font}
+    }
+  }
+
+  % 配置韩文字体
+  \IfFontExistsTF{Source Han Sans KR}{
+    \newfontfamily\krfont{Source Han Sans KR}[
+      BoldFont=Source Han Sans KR Bold,
+      Renderer=HarfBuzz
+    ]
+    \typeout{Set Korean font to Source Han Sans KR}
+  }{
+    \IfFontExistsTF{Apple SD Gothic Neo}{
+      \newfontfamily\krfont{Apple SD Gothic Neo}[
+        BoldFont=Apple SD Gothic Neo Bold,
+        Renderer=HarfBuzz
+      ]
+      \typeout{Set Korean font to Apple SD Gothic Neo}
+    }{
+      \let\krfont\rmfamily
+      \typeout{No Korean font available, using main font}
+    }
+  }
+\else
+  % XeLaTeX 的多语言字体配置
+  \IfFontExistsTF{Source Han Sans JP}{
+    \setCJKfamilyfont{jp}{Source Han Sans JP}[
+      BoldFont=Source Han Sans JP Bold
+    ]
+    \newcommand{\jpfont}{\CJKfamily{jp}}
+    \typeout{Set Japanese font to Source Han Sans JP (XeLaTeX)}
+  }{
+    \newcommand{\jpfont}{}
+    \typeout{No Japanese font available (XeLaTeX)}
+  }
+
+  \IfFontExistsTF{Source Han Sans KR}{
+    \setCJKfamilyfont{kr}{Source Han Sans KR}[
+      BoldFont=Source Han Sans KR Bold
+    ]
+    \newcommand{\krfont}{\CJKfamily{kr}}
+    \typeout{Set Korean font to Source Han Sans KR (XeLaTeX)}
+  }{
+    \newcommand{\krfont}{}
+    \typeout{No Korean font available (XeLaTeX)}
+  }
+\fi
+
+$if(emoji)$
+% 配置 emoji 字体 - 针对 LuaLaTeX 和 XeLaTeX 优化
+\ifluatex
+  % LuaLaTeX emoji 字体配置
+  \IfFontExistsTF{Apple Color Emoji}{
+    \newfontfamily\emojifont{Apple Color Emoji}[
+      Renderer=HarfBuzz
+    ]
+    \typeout{Set emoji font to Apple Color Emoji (LuaLaTeX)}
+  }{
+    \IfFontExistsTF{Noto Color Emoji}{
+      \newfontfamily\emojifont{Noto Color Emoji}[
+        Renderer=HarfBuzz
+      ]
+      \typeout{Set emoji font to Noto Color Emoji (LuaLaTeX)}
+    }{
+      \IfFontExistsTF{Segoe UI Emoji}{
+        \newfontfamily\emojifont{Segoe UI Emoji}[
+          Renderer=HarfBuzz
+        ]
+        \typeout{Set emoji font to Segoe UI Emoji (LuaLaTeX)}
+      }{
+        \IfFontExistsTF{Noto Emoji}{
+          \newfontfamily\emojifont{Noto Emoji}[
+            Renderer=HarfBuzz
+          ]
+          \typeout{Set emoji font to Noto Emoji (LuaLaTeX)}
+        }{
+          % 使用符号字体作为 fallback
+          \IfFontExistsTF{Arial Unicode MS}{
+            \newfontfamily\emojifont{Arial Unicode MS}[
+              Renderer=HarfBuzz
+            ]
+            \typeout{Set emoji font to Arial Unicode MS (LuaLaTeX fallback)}
+          }{
+            \let\emojifont\rmfamily
+            \typeout{Warning: No emoji font found (LuaLaTeX), using main font}
+          }
+        }
+      }
+    }
+  }
+\else
+  % XeLaTeX emoji 字体配置
+  \IfFontExistsTF{Apple Color Emoji}{
+    \newfontfamily\emojifont{Apple Color Emoji}[
+      Renderer=HarfBuzz,
+      RawFeature={color=1}
+    ]
+    \typeout{Set emoji font to Apple Color Emoji with color support (XeLaTeX)}
+  }{
+    \IfFontExistsTF{Noto Color Emoji}{
+      \newfontfamily\emojifont{Noto Color Emoji}[
+        Renderer=HarfBuzz,
+        RawFeature={color=1}
+      ]
+      \typeout{Set emoji font to Noto Color Emoji with color support (XeLaTeX)}
+    }{
+      \IfFontExistsTF{Arial Unicode MS}{
+        \newfontfamily\emojifont{Arial Unicode MS}
+        \typeout{Set emoji font to Arial Unicode MS (XeLaTeX fallback)}
+      }{
+        \let\emojifont\rmfamily
+        \typeout{Warning: No emoji font found (XeLaTeX), using main font}
+      }
+    }
+  }
+\fi
+
+% 配置中文支持
+\ifluatex
+  % LuaLaTeX 中文配置 - 使用 fontset=none 避免默认字体冲突
+  \usepackage[UTF8,fontset=none]{ctex}
+
+  % 手动配置 ctex 字体，使用我们已经设置的字体
+  \IfFontExistsTF{Source Han Sans SC}{
+    \setCJKmainfont{Source Han Sans SC}[
+      BoldFont=Source Han Sans SC Bold
+    ]
+    \setCJKsansfont{Source Han Sans SC}[
+      BoldFont=Source Han Sans SC Bold
+    ]
+    \setCJKmonofont{Source Han Mono SC}[
+      BoldFont=Source Han Mono SC Bold
+    ]
+    \typeout{Configured ctex with Source Han Sans SC (LuaLaTeX)}
+  }{
+    \typeout{Warning: Source Han Sans SC not found for ctex (LuaLaTeX)}
+  }
+\else
+  % XeLaTeX 中文配置
+  \usepackage[UTF8]{ctex}
+  \typeout{Using ctex for Chinese support (XeLaTeX)}
+\fi
+
+% 配置中英文间距（ctex 会自动处理）
+\ctexset{
+  punct=quanjiao,
+  space=auto,
+  autoindent=true
+}
+
+% 配置符号字体（用于特殊符号和 emoji fallback）
+\IfFontExistsTF{Noto Sans Symbols}{
+  \newfontfamily\symbolfont{Noto Sans Symbols}
+  \typeout{Set symbol font to Noto Sans Symbols}
+}{
+  \IfFontExistsTF{Segoe UI Symbol}{
+    \newfontfamily\symbolfont{Segoe UI Symbol}
+    \typeout{Set symbol font to Segoe UI Symbol}
+  }{
+    \IfFontExistsTF{Arial Unicode MS}{
+      \newfontfamily\symbolfont{Arial Unicode MS}
+      \typeout{Set symbol font to Arial Unicode MS}
+    }{
+      \let\symbolfont\rmfamily
+      \typeout{Warning: No symbol font found}
+    }
+  }
+}
+$else$
+% 非 emoji 模式下也配置符号字体
+\IfFontExistsTF{Noto Sans Symbols}{
+  \newfontfamily\symbolfont{Noto Sans Symbols}
+  \typeout{Set symbol font to Noto Sans Symbols}
+}{
+  \IfFontExistsTF{Arial Unicode MS}{
+    \newfontfamily\symbolfont{Arial Unicode MS}
+    \typeout{Set symbol font to Arial Unicode MS}
+  }{
+    \let\symbolfont\rmfamily
+    \typeout{Warning: No symbol font found}
+  }
+}
+$endif$
+
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{chngcntr}
+\usepackage{pdfpages}
+\usepackage{parskip}
+\usepackage{listings}
+\usepackage{minted}
+\usepackage{fvextra}
+\usepackage{amsmath}  % Required for mathematical environments like align
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{tocloft}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{enumitem}
+\usepackage[normalem]{ulem}  % For strikethrough (\sout) and underline commands, normalem preserves \emph
+% \usepackage{soul}  % Commented out due to conflicts with ulem and CJK text
+\usepackage{tikz}  % Required for mdframed with framemethod=tikz
+\usetikzlibrary{calc}  % Required for mdframed breakable frames
+\usepackage{seqsplit}  % For breaking long sequences like URLs and code
+
+% --- Pandoc Compatibility ---
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\newcommand{\passthrough}[1]{#1}
+
+% Define missing text formatting commands
+\providecommand{\st}[1]{\sout{#1}}  % Strikethrough using ulem package
+\providecommand{\textsubscript}[1]{\ensuremath{_{\text{#1}}}}  % Subscript
+\providecommand{\textsuperscript}[1]{\ensuremath{^{\text{#1}}}}  % Superscript (if not already defined)
+\providecommand{\smallcaps}[1]{\textsc{#1}}  % Small caps
+\providecommand{\texthl}[1]{\uline{#1}}  % Highlight using ulem underline
+
+% Additional Pandoc-generated commands
+\providecommand{\oldspacing}{}  % Backup for spacing changes
+\providecommand{\subtitle}[1]{#1}  % Subtitle command
+
+%%%% Table layout section
+% This section configures table formatting and layout options
+% Uses 'tabularx' and 'makecell' packages for better table handling
+% --- Table Column Types ---
+% Define auto-wrapping column types
+\renewcommand\tabularxcolumn[1]{p{#1}} % top alignment
+
+% For standard (non-tabularx) tables produced by Pandoc, provide better column handling
+% Instead of overriding all tables, let Pandoc handle column specs and just ensure consistent formatting
+\let\oldtabular\tabular
+\renewcommand{\tabular}[1]{%
+  \oldtabular{#1}% Use Pandoc's column specification
+}
+
+% 基本表格支持 - 增强表格线条，使用浅灰色分隔线
+\definecolor{tablegraylightline}{gray}{0.7}  % 定义浅灰色
+\arrayrulecolor{tablegraylightline}  % 设置表格线条颜色为浅灰色
+\renewcommand{\toprule}{\hline}
+\renewcommand{\midrule}{\hline}
+\renewcommand{\bottomrule}{\hline}
+\renewcommand{\arraystretch}{1.6}
+\setlength{\arrayrulewidth}{0.5pt}
+
+% 定义表格列类型
+\newcolumntype{L}{>{\raggedright\arraybackslash}p{0.25\textwidth}}
+\newcolumntype{C}{>{\centering\arraybackslash}p{0.25\textwidth}}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}p{0.25\textwidth}}
+
+%%%% Code highlight section
+% This section configures syntax highlighting for code blocks in various languages
+% Uses both 'listings' and 'minted' packages for comprehensive code formatting
+% 'minted' provides better syntax highlighting via Pygments for modern languages
+% --- Minted Configuration ---
+% Note: minted environments are created by the minted-filter.lua Lua filter
+% This filter converts fenced code blocks to proper minted environments with language detection
+
+% 使用 mdframed 包来创建统一的代码块样式
+\usepackage[framemethod=tikz]{mdframed}
+
+% 定义引用块样式 - 左侧竖线
+\definecolor{quoteborder}{rgb}{0.4,0.4,0.4}  % 引用块左侧竖线颜色 - 更深的灰色使竖线更明显
+\definecolor{quotebg}{rgb}{0.975,0.975,0.975}   % 引用块背景色（非常浅的灰色）
+
+% 定义引用块框架样式
+\mdfdefinestyle{quotestyle}{
+    backgroundcolor=quotebg,
+    linecolor=quoteborder,
+    linewidth=4pt,           % 左侧竖线宽度 - 增加到 4pt 使竖线更明显
+    leftline=true,           % 只显示左侧线
+    rightline=false,
+    topline=false,
+    bottomline=false,
+    leftmargin=8pt,          % 外部左边距，使整个引用块向右缩进
+    rightmargin=0pt,
+    innerleftmargin=20pt,    % 左侧内边距，文本与竖线的距离
+    innerrightmargin=12pt,
+    innertopmargin=10pt,     % 增加上下内边距
+    innerbottommargin=10pt,
+    skipabove=15pt,          % 引用块前的间距
+    skipbelow=15pt,          % 引用块后的间距
+    roundcorner=0pt,
+    splittopskip=\topskip,   % 跨页时顶部间距
+    splitbottomskip=0pt,     % 跨页时底部间距
+    everyline=true           % 每一行都应用样式
+}
+
+% 定义统一的代码块框架样式 - 为行号预留左边距
+\mdfdefinestyle{codeblockstyle}{
+    backgroundcolor=shadecolor,
+    linecolor=codeciteborder,
+    linewidth=1pt,
+    leftmargin=0pt,
+    rightmargin=0pt,
+    innerleftmargin=18pt,  % 减少左边距，让行号更靠近边框（25pt 适合三位数行号）
+    innerrightmargin=12pt,
+    innertopmargin=6pt,   % 减少上边距，让代码更靠近边框顶部
+    innerbottommargin=6pt, % 减少下边距，让代码更靠近边框底部
+    skipabove=12pt,
+    skipbelow=12pt,
+    roundcorner=0pt,
+    splittopskip=\topskip, % 跨页时顶部间距
+    splitbottomskip=0pt,   % 跨页时底部间距
+    everyline=true         % 每一行都应用样式
+}
+
+% Configure minted global settings - line number position and color control
+\setminted{
+    linenos=true,
+    numbersep=6pt,       % Reduce distance between line numbers and code content (6pt for closer spacing)
+    xleftmargin=0pt,     % No negative margin to ensure line numbers stay inside border
+    xrightmargin=0pt,    % Right margin of code block
+    resetmargins=false,  % Keep margin settings
+    fontsize=\scriptsize,
+    breaklines=true,
+    breakanywhere=true,
+    tabsize=2,
+    samepage=false
+}
+
+% 自定义行号颜色 - 使用浅灰色
+\renewcommand{\theFancyVerbLine}{\textcolor{linenumbercolor}{\scriptsize\arabic{FancyVerbLine}}}
+
+% 定义 Shaded 环境用于 Pandoc 生成的代码块
+\usepackage{fancyvrb}
+\usepackage{framed}
+\setlength{\FrameSep}{12pt}  % 设置框架内边距
+
+% 重新定义 shadecolor - 使用更浅的背景色和边框
+\definecolor{shadecolor}{rgb}{0.97,0.97,0.98}  % 更浅的背景色
+\definecolor{codeciteborder}{rgb}{0.85,0.87,0.90}  % 更浅的边框颜色
+\definecolor{linenumbercolor}{rgb}{0.65,0.65,0.65}  % 行号颜色 - 浅灰色
+
+% 定义 Shaded 环境使用自定义框架，确保正确跨页
+\newenvironment{Shaded}{%
+  \def\FrameCommand{%
+    \fboxsep=\FrameSep%
+    \fcolorbox{codeciteborder}{shadecolor}%
+  }%
+  \MakeFramed{\FrameRestore}%
+  \vspace{-6pt}%  % 减少顶部间距
+}{%
+  \vspace{-6pt}%  % 减少底部间距
+  \endMakeFramed%
+}
+
+% 定义 Highlighting 环境用于语法高亮 - 优化版本，与边框完美配合
+\newenvironment{Highlighting}{%
+$if(emoji)$
+  \emojicodefont\scriptsize%  % 使用支持 emoji 的代码字体，更小字号
+$else$
+  \codefont\scriptsize%  % 使用支持中文的代码字体，更小字号
+$endif$
+  \setlength{\parindent}{0pt}%
+  \setlength{\leftskip}{0pt}%  % 减少左边距，让内容更贴近边框
+  \setlength{\rightskip}{0pt}%  % 减少右边距
+  \setlength{\topsep}{0pt}%
+  \setlength{\partopsep}{0pt}%
+  \setlength{\parsep}{0pt}%
+  \setlength{\itemsep}{0pt}%
+}{%
+}
+
+% 定义 Pandoc 语法高亮命令 - 优化颜色对比度
+\newcommand{\CommentTok}[1]{\textcolor{syntaxgreen}{\textit{#1}}}
+\newcommand{\KeywordTok}[1]{\textcolor{syntaxblue}{\textbf{#1}}}
+\newcommand{\StringTok}[1]{\textcolor{syntaxred}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor{syntaxpurple}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor{syntaxbrown}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\BuiltInTok}[1]{\textcolor{syntaxdarkblue}{\textbf{#1}}}
+\newcommand{\ControlFlowTok}[1]{\textcolor{syntaxblue}{\textbf{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor{syntaxorange}{\textbf{#1}}}
+\newcommand{\VariableTok}[1]{\textcolor{syntaxdarkblue}{#1}}
+\newcommand{\DataTypeTok}[1]{\textcolor{syntaxpurple}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor{syntaxorange}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor{syntaxorange}{#1}}
+\newcommand{\CharTok}[1]{\textcolor{syntaxred}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor{syntaxbrown}{\textbf{#1}}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor{syntaxred}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor{syntaxred}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{\textcolor{syntaxdarkblue}{\textbf{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor{syntaxgreen}{\textit{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor{syntaxgreen}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor{syntaxgreen}{\textbf{\textit{#1}}}}
+\newcommand{\InformationTok}[1]{\textcolor{syntaxgreen}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor{syntaxorange}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor{syntaxred}{\textbf{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor{red}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor{syntaxbrown}{\textbf{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\OtherTok}[1]{\textcolor{syntaxdarkblue}{#1}}
+
+% Define syntax highlighting colors for text-only highlighting
+\definecolor{syntaxblue}{rgb}{0.0,0.0,0.8}        % Keywords
+\definecolor{syntaxgreen}{rgb}{0.0,0.5,0.0}       % Comments
+\definecolor{syntaxred}{rgb}{0.8,0.0,0.0}         % Strings
+\definecolor{syntaxpurple}{rgb}{0.5,0.0,0.5}      % Functions
+\definecolor{syntaxorange}{rgb}{0.8,0.4,0.0}      % Numbers
+\definecolor{syntaxgray}{rgb}{0.5,0.5,0.5}        % Line numbers
+\definecolor{syntaxdarkblue}{rgb}{0.0,0.0,0.5}    % Types
+\definecolor{syntaxbrown}{rgb}{0.6,0.3,0.0}       % Operators
+
+
+
+% --- Enhanced Listings Configuration for Fallback ---
+\definecolor{codegray}{gray}{0.95}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codered}{rgb}{0.6,0,0}
+\definecolor{backcolour}{rgb}{0.94,0.95,0.96}  % 更明显的背景色，与 Shaded 环境一致
+\definecolor{framegray}{rgb}{0.75,0.80,0.85}  % 更明显的边框颜色
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{blue}\bfseries,
+    numberstyle=\tiny\color{gray},
+    stringstyle=\color{codepurple},
+    basicstyle=\codefont\scriptsize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=12pt,  % 行号与代码的间距
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    frameround=tttt,
+    rulecolor=\color{framegray},
+    framesep=12pt,  % 边框内边距，确保行号在边框内
+    framexleftmargin=0pt,  % 不额外增加左边距，让行号紧贴边框
+    framexrightmargin=0pt,  % 不额外增加右边距
+    framextopmargin=8pt,  % 上边距
+    framexbottommargin=8pt,  % 下边距
+    xleftmargin=0pt,  % 整体左边距设为 0，让边框包含行号
+    xrightmargin=0pt,  % 整体右边距设为 0
+    aboveskip=12pt,  % 代码块上方间距
+    belowskip=12pt  % 代码块下方间距
+}
+
+% 定义特定语言的样式
+\lstdefinelanguage{YAML}{
+  keywords={true,false,null,yes,no},
+  keywordstyle=\color{blue}\bfseries,
+  ndkeywords={},
+  ndkeywordstyle=\color{codered}\bfseries,
+  identifierstyle=\color{black},
+  sensitive=false,
+  comment=[l]{\#},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{codegreen}\itshape,
+  stringstyle=\color{codepurple},
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstdefinelanguage{Bash}{
+  morekeywords={if,then,fi,else,elif,for,in,do,done,case,esac,while,function,local,export},
+  sensitive=true,
+  alsoletter={-}, % allow flags like --help
+  comment=[l]{\#}
+}
+
+\lstdefinelanguage{shell}{
+  morekeywords={if,then,fi,else,elif,for,in,do,done,case,esac,while,function,local,export},
+  sensitive=true,
+  alsoletter={-}, % allow flags like --help
+  comment=[l]{\#}
+}
+
+\lstdefinelanguage{Go}{
+  morekeywords={break,case,chan,const,continue,default,defer,else,fallthrough,for,func,go,goto,if,import,interface,map,package,range,return,select,struct,switch,type,var},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/}
+}
+
+\lstdefinelanguage{TOML}{
+  morekeywords={true,false},
+  sensitive=true,
+  comment=[l]{\#}
+}
+
+\lstdefinelanguage{HTML}{
+  morekeywords={html,head,body,title,div,span,p,a,img,ul,ol,li,table,tr,td,th,form,input,button,script,style,meta,link},
+  sensitive=false,
+  comment=[s]{<!--}{-->}
+}
+
+\lstdefinelanguage{XML}{
+  morekeywords={xml,version,encoding,stylesheet,schema,namespace},
+  sensitive=false,
+  comment=[s]{<!--}{-->}
+}
+
+\lstdefinelanguage{Markdown}{
+  morekeywords={},
+  sensitive=true,
+  comment=[l]{<!--}
+}
+
+\lstdefinelanguage{Rust}{
+  morekeywords={as,break,const,continue,crate,else,enum,extern,false,fn,for,if,in,let,loop,match,mod,move,mut,pub,ref,return,self,Self,static,struct,super,trait,true,type,unsafe,use,where,while},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/}
+}
+
+\lstdefinelanguage{Python}{
+  morekeywords={and,as,assert,break,class,continue,def,del,elif,else,except,exec,finally,for,from,global,if,import,in,is,lambda,not,or,pass,print,raise,return,try,while,with,yield},
+  sensitive=true,
+  comment=[l]{\#}
+}
+
+\lstdefinelanguage{JSON}{
+  morekeywords={},
+  sensitive=true,
+  comment=[l]{//}
+}
+
+\lstdefinelanguage{Dockerfile}{
+  morekeywords={FROM,RUN,CMD,LABEL,EXPOSE,ENV,ADD,COPY,ENTRYPOINT,VOLUME,USER,WORKDIR,ARG,ONBUILD,STOPSIGNAL,HEALTHCHECK,SHELL},
+  sensitive=false,
+  comment=[l]{\#}
+}
+
+\lstdefinelanguage{INI}{
+  morekeywords={},
+  sensitive=true,
+  comment=[l]{\#},
+  morecomment=[l]{;}
+}
+
+\lstdefinelanguage{JavaScript}{
+  morekeywords={break,case,catch,continue,debugger,default,delete,do,else,finally,for,function,if,in,instanceof,new,return,switch,this,throw,try,typeof,var,void,while,with,const,let,class,extends,super,import,export,from,async,await},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/}
+}
+
+\lstdefinelanguage{Text}{}
+\lstset{language=Text}
+
+% Language alias mapping macro
+\providecommand{\lstalias}[2]{\expandafter\lstdefinelanguage\expandafter{#1}[]{#2}{}}
+
+% Helper aliases so Pandoc names match ours
+\lstalias{shell}{Bash}
+\lstalias{sh}{Bash}
+\lstalias{go}{Go}
+\lstalias{python}{Python}
+\lstalias{javascript}{JavaScript}
+\lstalias{js}{JavaScript}
+\lstalias{yaml}{YAML}
+\lstalias{yml}{YAML}
+\lstalias{json}{JSON}
+\lstalias{html}{HTML}
+\lstalias{xml}{XML}
+\lstalias{toml}{TOML}
+\lstalias{dockerfile}{Dockerfile}
+\lstalias{rust}{Rust}
+\lstalias{rs}{Rust}
+\lstalias{markdown}{Markdown}
+\lstalias{md}{Markdown}
+\lstalias{ini}{INI}
+\lstalias{text}{Text}
+\lstalias{txt}{Text}
+\lstalias{go-html-template}{Go}
+\lstalias{gotemplate}{Go}
+
+\lstset{
+  style=mystyle,
+  columns=fixed,
+  keepspaces=true
+}
+
+
+% 为不同语言设置特定样式
+\lstset{
+    language=YAML,
+    morekeywords={apiVersion,kind,metadata,spec,data,name,namespace,labels,annotations}
+}
+
+% --- Document Layout ---
+% Figure numbering by chapter
+\counterwithin{figure}{chapter}
+\renewcommand{\thefigure}{\thechapter-\arabic{figure}}
+\captionsetup{labelsep=colon, font=normal} % 将 labelsep=space 改为 colon
+\renewcommand{\figurename}{图}
+
+% 优化图片浮动和间距设置
+\setlength{\floatsep}{12pt plus 2pt minus 2pt}     % 浮动体与浮动体之间的间距
+\setlength{\textfloatsep}{12pt plus 2pt minus 2pt} % 浮动体与正文之间的间距
+\setlength{\intextsep}{12pt plus 2pt minus 2pt}    % 嵌入文本的浮动体前后间距
+\setlength{\abovecaptionskip}{6pt}                 % 图片与标题之间的间距
+\setlength{\belowcaptionskip}{6pt}                 % 标题与下文之间的间距
+
+% 更宽松的浮动体参数
+\renewcommand{\topfraction}{0.9}        % 页面顶部浮动体的最大比例
+\renewcommand{\bottomfraction}{0.8}     % 页面底部浮动体的最大比例
+\renewcommand{\textfraction}{0.07}      % 页面文本的最小比例
+\renewcommand{\floatpagefraction}{0.7}  % 浮动页面浮动体的最小比例
+\setcounter{totalnumber}{50}            % 页面浮动体的最大数量
+\setcounter{topnumber}{50}              % 页面顶部浮动体的最大数量
+\setcounter{bottomnumber}{50}           % 页面底部浮动体的最大数量
+
+% Table formatting
+\renewcommand{\tablename}{表}
+\counterwithin{table}{chapter}
+\renewcommand{\thetable}{\thechapter-\arabic{table}}
+
+% 设置表格样式
+\captionsetup[table]{position=top, labelsep=colon, font=normal}
+
+% 设置表格行间距和基本样式（已在基本表格支持部分设置）
+
+% 设置 longtable 基本间距
+\setlength{\LTpre}{1.5em}
+\setlength{\LTpost}{1.5em}
+
+% 表格优化：防止文字重叠
+\setlength{\tabcolsep}{6pt} % 增加列间距
+\setlength{\extrarowheight}{3pt} % 增加行高
+\setlength{\LTcapwidth}{\textwidth} % longtable 标题宽度
+
+% 表格字体大小和宽度控制
+\newcommand{\maxTableWidth}{0.98\textwidth}
+% Note: \tabulinesep is from longtabu package, not longtable
+% For longtable, we use \arraystretch and \tabcolsep for spacing control
+\newcommand{\tablefontsize}{\small}
+
+% 优化表格分页
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+
+% 表格自动换行列类型（参数化版本）- 优化版本
+\newcolumntype{L}[1]{\u003e{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{\u003e{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{\u003e{\raggedleft\arraybackslash}p{#1}}
+
+% 定义更灵活的自动换行列类型，支持断词
+\newcolumntype{P}[1]{\u003e{\raggedright\arraybackslash\hspace{0pt}}p{#1}}
+\newcolumntype{M}[1]{\u003e{\centering\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{B}[1]{\u003e{\raggedleft\arraybackslash\hspace{0pt}}b{#1}}
+
+% Page geometry
+\geometry{left=2.5cm, right=2.5cm, top=3cm, bottom=3cm, headheight=1.5cm, footskip=1cm}
+
+% Text alignment - ensure left alignment
+\raggedright
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt plus 1pt minus 1pt}
+
+% Enhanced Unicode character support and emoji fallback commands
+\newcommand{\greencheckmark}{\textcolor{green}{✓}}
+\newcommand{\redcrossmark}{\textcolor{red}{✗}}
+\newcommand{\orangewarningmark}{\textcolor{orange}{⚠}}
+
+% Define enhanced emoji and symbol commands with intelligent fallback
+% Universal emoji command that tries multiple font sources in order
+\newcommand{\emoji}[1]{%
+  \ifcsname emojifont\endcsname%
+    \begingroup%
+    \emojifont%
+    #1%
+    \endgroup%
+  \else%
+    \ifcsname symbolfont\endcsname%
+      \begingroup%
+      \symbolfont%
+      #1%
+      \endgroup%
+    \else%
+      #1%
+    \fi%
+  \fi%
+}
+
+% Smart symbol command that tries symbol font first, then emoji font
+\newcommand{\smartsymbol}[1]{%
+  \ifcsname symbolfont\endcsname%
+    \begingroup%
+    \symbolfont%
+    #1%
+    \endgroup%
+  \else%
+    \ifcsname emojifont\endcsname%
+      \begingroup%
+      \emojifont%
+      #1%
+      \endgroup%
+    \else%
+      #1%
+    \fi%
+  \fi%
+}
+
+% 定义一个更强大的多字体 fallback 命令
+\newcommand{\multifont}[1]{%
+  \ifcsname emojifont\endcsname%
+    \begingroup%
+    \emojifont%
+    #1%
+    \endgroup%
+  \else%
+    \ifcsname symbolfont\endcsname%
+      \begingroup%
+      \symbolfont%
+      #1%
+      \endgroup%
+    \else%
+      \ifcsname jpfont\endcsname%
+        \begingroup%
+        \jpfont%
+        #1%
+        \endgroup%
+      \else%
+        \ifcsname krfont\endcsname%
+          \begingroup%
+          \krfont%
+          #1%
+          \endgroup%
+        \else%
+          #1%
+        \fi%
+      \fi%
+    \fi%
+  \fi%
+}
+
+% Define common emoji commands with intelligent fallback
+$if(emoji)$
+% For emoji builds, use smart emoji command with fallback
+\DeclareRobustCommand{\emojicheck}{\emoji{✅}}
+\DeclareRobustCommand{\emojicross}{\emoji{❌}}
+\DeclareRobustCommand{\emojiwarning}{\emoji{⚠️}}
+\DeclareRobustCommand{\emojinote}{\emoji{📝}}
+\DeclareRobustCommand{\emojitool}{\emoji{🔧}}
+\DeclareRobustCommand{\emojiidea}{\emoji{💡}}
+\DeclareRobustCommand{\emojirocket}{\emoji{🚀}}
+\DeclareRobustCommand{\emojichart}{\emoji{📊}}
+\DeclareRobustCommand{\emojitarget}{\emoji{🎯}}
+\DeclareRobustCommand{\emojistar}{\emoji{⭐}}
+$else$
+% For non-emoji builds, provide text fallbacks with symbol font support
+\DeclareRobustCommand{\emojicheck}{\smartsymbol{✓}}
+\DeclareRobustCommand{\emojicross}{\smartsymbol{✗}}
+\DeclareRobustCommand{\emojiwarning}{\smartsymbol{⚠}}
+\DeclareRobustCommand{\emojinote}{[NOTE]}
+\DeclareRobustCommand{\emojitool}{[TOOL]}
+\DeclareRobustCommand{\emojiidea}{[IDEA]}
+\DeclareRobustCommand{\emojirocket}{[ROCKET]}
+\DeclareRobustCommand{\emojichart}{[CHART]}
+\DeclareRobustCommand{\emojitarget}{[TARGET]}
+\DeclareRobustCommand{\emojistar}{[STAR]}
+$endif$
+
+% Configure symbol fonts for special characters, currency, and emoji
+% Add support for missing symbols like currency symbols, punctuation, etc.
+\ifluatex
+  % LuaLaTeX symbol font configuration
+  % Configure symbol fonts for comprehensive Unicode support
+  \IfFontExistsTF{Noto Sans Symbols}{
+    \newfontfamily\symbolfont{Noto Sans Symbols}[Renderer=HarfBuzz]
+    \typeout{Set symbol font to Noto Sans Symbols}
+  }{
+    \IfFontExistsTF{Noto Sans Symbols2}{
+      \newfontfamily\symbolfont{Noto Sans Symbols2}[Renderer=HarfBuzz]
+      \typeout{Set symbol font to Noto Sans Symbols2}
+    }{
+      \IfFontExistsTF{Segoe UI Symbol}{
+        \newfontfamily\symbolfont{Segoe UI Symbol}[Renderer=HarfBuzz]
+        \typeout{Set symbol font to Segoe UI Symbol}
+      }{
+        % Use main font as fallback
+        \let\symbolfont\rmfamily
+        \typeout{Warning: No symbol font found, using main font}
+      }
+    }
+  }
+  
+  % Currency font configuration
+  \IfFontExistsTF{Noto Sans}{
+    \newfontfamily\currencyfont{Noto Sans}[Renderer=HarfBuzz]
+    \typeout{Set currency font to Noto Sans}
+  }{
+    \IfFontExistsTF{Arial Unicode MS}{
+      \newfontfamily\currencyfont{Arial Unicode MS}[Renderer=HarfBuzz]
+      \typeout{Set currency font to Arial Unicode MS}
+    }{
+      \let\currencyfont\rmfamily
+      \typeout{Warning: No suitable currency font found}
+    }
+  }
+\else
+  % XeLaTeX symbol font configuration
+  \IfFontExistsTF{Noto Sans Symbols}{
+    \newfontfamily\symbolfont{Noto Sans Symbols}
+    \typeout{Set symbol font to Noto Sans Symbols}
+  }{
+    \IfFontExistsTF{Segoe UI Symbol}{
+      \newfontfamily\symbolfont{Segoe UI Symbol}
+      \typeout{Set symbol font to Segoe UI Symbol}
+    }{
+      \let\symbolfont\rmfamily
+      \typeout{Warning: No symbol font found for XeLaTeX}
+    }
+  }
+  
+  % Currency font for XeLaTeX
+  \IfFontExistsTF{Arial Unicode MS}{
+    \newfontfamily\currencyfont{Arial Unicode MS}
+    \typeout{Set currency font to Arial Unicode MS}
+  }{
+    \let\currencyfont\rmfamily
+    \typeout{Warning: No currency font found for XeLaTeX}
+  }
+\fi
+
+% Define fallback commands for special symbols
+\newcommand{\fallbacksymbol}[2]{%
+  \ifcsname symbolfont\endcsname%
+    {{\symbolfont #1}}%
+  \else%
+    #2% fallback text
+  \fi%
+}
+
+\newcommand{\fallbackcurrency}[2]{%
+  \ifcsname currencyfont\endcsname%
+    {{\currencyfont #1}}%
+  \else%
+    #2% fallback text
+  \fi%
+}
+
+% Define specific missing symbol commands
+% Enhanced symbol commands with multiple font fallbacks to eliminate warnings
+
+% Currency symbols - use text abbreviations to avoid font issues
+\DeclareRobustCommand{\rupee}{\textcolor{darkgray}{INR}}
+\DeclareRobustCommand{\ruble}{\textcolor{darkgray}{RUB}}
+\DeclareRobustCommand{\shekel}{\textcolor{darkgray}{ILS}}
+\DeclareRobustCommand{\colon}{\textcolor{darkgray}{CRC}}
+\DeclareRobustCommand{\cruzeiro}{\textcolor{darkgray}{BRC}}
+\DeclareRobustCommand{\franc}{\textcolor{darkgray}{FRF}}
+\DeclareRobustCommand{\lira}{\textcolor{darkgray}{ITL}}
+\DeclareRobustCommand{\mill}{\textcolor{darkgray}{MILL}}
+\DeclareRobustCommand{\naira}{\textcolor{darkgray}{NGN}}
+\DeclareRobustCommand{\peseta}{\textcolor{darkgray}{ESP}}
+\DeclareRobustCommand{\rupeeold}{\textcolor{darkgray}{PKR}}
+
+% Special punctuation and symbols - use text fallbacks to avoid font issues
+\DeclareRobustCommand{\tripleprime}{\textcolor{gray}{'''}}
+\DeclareRobustCommand{\reversedSemicolon}{\textcolor{gray}{;}}
+\DeclareRobustCommand{\hourglass}{%
+  \ifcsname emojifont\endcsname%
+    {{\emojifont ⏳}}%
+  \else%
+    \textcolor{orange}{[WAIT]}%
+  \fi%
+}
+\DeclareRobustCommand{\infoSymbol}{%
+  \ifcsname emojifont\endcsname%
+    {{\emojifont ℹ}}%
+  \else%
+    \textcolor{blue}{[INFO]}%
+  \fi%
+}
+\DeclareRobustCommand{\raisedFist}{%
+  \ifcsname emojifont\endcsname%
+    {{\emojifont ✊}}%
+  \else%
+    \textcolor{red}{[POWER]}%
+  \fi%
+}
+\DeclareRobustCommand{\keyboardSymbol}{%
+  \ifcsname emojifont\endcsname%
+    {{\emojifont ⌨}}%
+  \else%
+    \textcolor{gray}{[KEYBOARD]}%
+  \fi%
+}
+
+% Configure monospace fonts for all engines with CJK support
+\ifluatex
+  % LuaLaTeX monospace font configuration - prioritize SourceHanMono for code blocks
+  % Use SourceHanMono for proper monospace code display with CJK support
+  \IfFontExistsTF{Source Han Mono SC}{
+    \setmonofont{Source Han Mono SC}[Scale=0.8,Renderer=HarfBuzz]
+    \newfontfamily\codefont{Source Han Mono SC}[Scale=0.8,Renderer=HarfBuzz]
+    \typeout{Set monospace font to Source Han Mono SC for CJK code support}
+  }{
+    \IfFontExistsTF{Source Han Sans SC}{
+      \setmonofont{Source Han Sans SC}[Scale=0.8,Renderer=HarfBuzz]
+      \newfontfamily\codefont{Source Han Sans SC}[Scale=0.8,Renderer=HarfBuzz]
+      \typeout{Set monospace font to Source Han Sans SC for CJK support (fallback)}
+    }{
+      \IfFontExistsTF{PingFang SC}{
+        \setmonofont{PingFang SC}[Scale=0.8,Renderer=HarfBuzz]
+        \newfontfamily\codefont{PingFang SC}[Scale=0.8,Renderer=HarfBuzz]
+        \typeout{Set monospace font to PingFang SC (macOS fallback with CJK)}
+      }{
+        \IfFontExistsTF{JetBrains Mono}{
+          \setmonofont{JetBrains Mono}[
+            Scale=0.8,
+            BoldFont=JetBrains Mono Bold,
+            Renderer=HarfBuzz
+          ]
+          \newfontfamily\codefont{JetBrains Mono}[Scale=0.8,Renderer=HarfBuzz]
+          \typeout{Warning: Using JetBrains Mono - CJK characters may not display properly}
+        }{
+          \IfFontExistsTF{Fira Code}{
+            \setmonofont{Fira Code}[
+              Scale=0.8,
+              BoldFont=Fira Code Bold,
+              Renderer=HarfBuzz
+            ]
+            \newfontfamily\codefont{Fira Code}[Scale=0.8,Renderer=HarfBuzz]
+          }{
+            \setmonofont{Menlo}[Scale=0.8,Renderer=HarfBuzz]
+            \newfontfamily\codefont{Menlo}[Scale=0.8,Renderer=HarfBuzz]
+          }
+        }
+      }
+    }
+  }
+\else
+  % XeLaTeX monospace font configuration with CJK support
+  % Use SourceHanMono for proper monospace code display with CJK support
+  \IfFontExistsTF{Source Han Mono SC}{
+    \setmonofont{Source Han Mono SC}[Scale=0.8]
+    \newfontfamily\codefont{Source Han Mono SC}[Scale=0.8]
+    \typeout{Set monospace font to Source Han Mono SC for CJK code support}
+  }{
+    \IfFontExistsTF{Source Han Sans SC}{
+      \setmonofont{Source Han Sans SC}[Scale=0.8]
+      \newfontfamily\codefont{Source Han Sans SC}[Scale=0.8]
+      \typeout{Set monospace font to Source Han Sans SC for CJK support (fallback)}
+    }{
+      \IfFontExistsTF{PingFang SC}{
+        \setmonofont{PingFang SC}[Scale=0.8]
+        \newfontfamily\codefont{PingFang SC}[Scale=0.8]
+        \typeout{Set monospace font to PingFang SC (macOS fallback with CJK)}
+      }{
+      \IfFontExistsTF{JetBrains Mono}{
+        \setmonofont{JetBrains Mono}[
+          Scale=0.8,
+          BoldFont=JetBrains Mono Bold
+        ]
+        \newfontfamily\codefont{JetBrains Mono}[Scale=0.8]
+        \typeout{Warning: Using JetBrains Mono - CJK characters may not display properly}
+      }{
+        \IfFontExistsTF{Fira Code}{
+          \setmonofont{Fira Code}[
+            Scale=0.8,
+            BoldFont=Fira Code Bold
+          ]
+          \newfontfamily\codefont{Fira Code}[Scale=0.8]
+        }{
+          \setmonofont{Menlo}[Scale=0.8]
+          \newfontfamily\codefont{Menlo}[Scale=0.8]
+        }
+      }
+    }
+  }
+}
+\fi
+
+% Ensure codefont is always defined
+\providecommand{\codefont}{\ttfamily}
+
+% Define code background color - 与代码块背景色一致
+\definecolor{codebg}{rgb}{0.94,0.95,0.96}
+
+% Define emoji-aware code font for use in code environments
+$if(emoji)$
+\newcommand{\emojicodefont}{\codefont}
+$endif$
+
+% Redefine texttt for inline code - keep truly inline for normal text
+\let\oldtexttt\texttt
+\renewcommand{\texttt}[1]{%
+  \begingroup%
+  \codefont\small%
+  \setlength{\fboxsep}{1pt}%
+  \colorbox{codebg}{%
+    \hspace{1pt}%
+    \mbox{#1}% Use mbox to prevent line breaks and ensure the background only covers the text
+    \hspace{1pt}%
+  }%
+  \endgroup%
+}
+
+% Define a table-friendly inline code command that allows line breaks
+\newcommand{\tablecode}[1]{%
+  \begingroup%
+  \codefont\small%
+  \colorbox{codebg}{%
+    \hspace{1pt}%
+    \parbox{\linewidth}{%
+      \raggedright%
+      \hspace{0pt}% Enable hyphenation
+      \textcolor{black}{#1}%
+    }%
+    \hspace{1pt}%
+  }%
+  \endgroup%
+}
+
+% Define a breakable inline code command for general use
+\newcommand{\breakcode}[1]{%
+  \begingroup%
+  \codefont\small%
+  \setlength{\fboxsep}{1pt}%
+  \colorbox{codebg}{%
+    \parbox[t]{\linewidth}{%
+      \raggedright%
+      \hspace{0pt}% Enable word breaking
+      \allowbreak%
+      \textcolor{black}{#1}%
+      \allowbreak%
+    }%
+  }%
+  \endgroup%
+}
+
+% Alternative inline code for tables - allows natural line breaking
+\newcommand{\flexcode}[1]{%
+  \begingroup%
+  \codefont\small% Use small font for better readability
+  % Use a simple approach: just apply font and color without background box
+  % This prevents the "whole line background" issue in tables
+  \textcolor{black}{#1}% Simple text formatting without colorbox
+  \endgroup%
+}
+
+% Table inline code without background color - for cleaner table appearance
+\newcommand{\tablecodenobackground}[1]{%
+  \begingroup%
+  \codefont\small% Use small font for better readability in tables
+  % Simple boxed layout to reduce spacing issues
+  \setlength{\fboxsep}{0.5pt}%
+  \fcolorbox{gray}{white}{%
+    \parbox[t]{\dimexpr\linewidth-6pt\relax}{%
+      \raggedright%
+      \tolerance=1000%
+      \emergencystretch=1em%
+      \hbadness=1000%
+      \pretolerance=100%
+      \hfuzz=0.1pt%
+      \spaceskip=0.2em plus 0.08em minus 0.05em% Adjusted space stretching for inline content
+      \setlength{\parskip}{0pt}%
+      \setlength{\baselineskip}{1.05\baselineskip}% Adjusted line spacing
+      \hspace{0pt}#1%
+    }%
+  }%
+  \endgroup%
+}
+
+% Fix lstinline to support CJK characters by redefining it to use our enhanced texttt
+\let\oldlstinline\lstinline
+\renewcommand{\lstinline}[2][]{%
+  \begingroup%
+  \codefont\small%
+  \setlength{\fboxsep}{1pt}%
+  \colorbox{codebg}{%
+    \hspace{1pt}%
+    \parbox[t]{\dimexpr\linewidth-4pt\relax}{%
+      \raggedright%
+      \tolerance=9999%
+      \emergencystretch=3em%
+      \hbadness=10000%
+      \hfuzz=0.1pt%
+      \hspace{0pt}%
+      \seqsplit{#2}%
+    }%
+    \hspace{1pt}%
+  }%
+  \endgroup%
+}
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[RE]{\nouppercase{\leftmark}}
+\fancyhead[LO]{\nouppercase{\rightmark}}
+\fancyfoot[C]{\thepage}
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
+% 修正章节页眉格式，显示“第 N 章。标题”
+\renewcommand{\chaptermark}[1]{%
+  \markboth{第\ \thechapter\ 章：#1}{}
+}
+
+% Section formatting
+\renewcommand{\chaptername}{第}
+\renewcommand{\thechapter}{\arabic{chapter}}
+
+% 中文目录标题
+\renewcommand{\contentsname}{目录}
+
+% 中英文混合排版优化配置 - 使用 ctex 内建支持
+% ctex 宏包已经提供了优秀的中英文混排支持
+% 配置基本的换行参数
+\pretolerance=1000
+\tolerance=2000
+\emergencystretch=1em
+\righthyphenmin=1
+\lefthyphenmin=2
+
+% 配置中文断行设置 - 根据引擎选择
+\ifluatex
+  % LuaLaTeX 使用 ctex 的内建中文断行支持
+  \typeout{Using LuaLaTeX Chinese line breaking}
+\else
+  % XeLaTeX 使用 XeTeX 的中文断行设置
+  \XeTeXlinebreaklocale "zh"
+  \XeTeXlinebreakskip = 0pt plus 1pt minus 0.1pt
+  \typeout{Using XeLaTeX Chinese line breaking}
+\fi
+
+% 配置中英文间距（ctex 会自动处理）
+% 注意：\ctexset 命令已移动到 ctex 包加载之后
+
+% 简化的多语言字体支持配置
+% 使用更简单但有效的方法来处理 emoji 和多语言字符
+\typeout{Configuring simplified multilingual font support}
+
+\titleformat{\chapter}[display]{\normalfont\huge\bfseries}{\chaptername\ \thechapter\ 章}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{40pt}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{18pt plus 2pt minus 1pt}{14pt}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{16pt}{10pt}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{14pt}{8pt}
+
+% 章节开始时总是在新页
+\let\originalchapter\chapter
+\renewcommand{\chapter}{\clearpage\originalchapter}
+
+% itemize 列表所有层级都用圆点
+\renewcommand{\labelitemi}{\textbullet}
+\renewcommand{\labelitemii}{\textbullet}
+\renewcommand{\labelitemiii}{\textbullet}
+\renewcommand{\labelitemiv}{\textbullet}
+
+% Tightened list spacing using enumitem package
+\setlist[itemize,1]{leftmargin=1.2em,label=\textbullet,itemsep=2pt,parsep=0pt}
+\setlist[enumerate,1]{leftmargin=1.8em,itemsep=2pt,parsep=0pt}
+
+% 重新定义 quote 环境，使用左侧竖线样式
+\renewenvironment{quote}{%
+  \begin{mdframed}[style=quotestyle]%
+  $if(quote_color)$\color{quotecolor}$endif$% 应用引用文字颜色
+  % 不使用斜体，保持正常字体
+}{%
+  \end{mdframed}%
+}
+
+% 定义 blockquote 环境（Pandoc 使用这个）
+\newenvironment{blockquote}{%
+  \begin{mdframed}[style=quotestyle]%
+  $if(quote_color)$\color{quotecolor}$endif$% 应用引用文字颜色
+  % 不使用斜体，保持正常字体
+}{%
+  \end{mdframed}%
+}
+
+% 定义 quotation 环境（可能的 Pandoc 引用环境）
+\renewenvironment{quotation}{%
+  \begin{mdframed}[style=quotestyle]%
+  $if(quote_color)$\color{quotecolor}$endif$% 应用引用文字颜色
+  % 不使用斜体，保持正常字体
+}{%
+  \end{mdframed}%
+}
+
+% 定义 quoteblock 环境（备用）
+\newenvironment{quoteblock}{%
+  \begin{mdframed}[style=quotestyle]%
+  $if(quote_color)$\color{quotecolor}$endif$% 应用引用文字颜色
+  % 不使用斜体，保持正常字体
+}{%
+  \end{mdframed}%
+}
+
+% --- Hyperref (must be loaded late) ---
+\hypersetup{
+    unicode=true,
+    pdftoolbar=true,
+    pdfmenubar=true,
+    pdffitwindow=false,
+    pdfstartview={FitH},
+    pdftitle={$title$},
+    pdfauthor={$author$},
+    pdfsubject={$subject$},
+    pdfcreator={$creator$},
+    pdfproducer={$producer$},
+    pdfkeywords={$keywords$},
+    bookmarks=true,
+    bookmarksopen=true,
+    bookmarksopenlevel=2,
+    bookmarksnumbered=true,
+    bookmarkstype=toc,
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,
+    urlcolor=blue,
+    citecolor=black,
+    linktoc=all
+}
+
+% --- Color Configuration ---
+$if(body_color)$
+\definecolor{bodycolor}{HTML}{$body_color$}
+\color{bodycolor}
+$endif$
+
+$if(heading_color)$
+\definecolor{headingcolor}{HTML}{$heading_color$}
+\renewcommand{\normalcolor}{\color{headingcolor}}
+$endif$
+
+$if(link_color)$
+\definecolor{linkcolor}{HTML}{$link_color$}
+\hypersetup{linkcolor=linkcolor, urlcolor=linkcolor, citecolor=linkcolor}
+$endif$
+
+$if(code_color)$
+% Convert HTML color to RGB values
+\definecolor{codecolor}{RGB}{221,20,0}
+$endif$
+
+$if(quote_color)$
+\definecolor{quotecolor}{HTML}{$quote_color$}
+% 更新 quotestyle 的文字颜色而不是重新定义整个环境
+\mdfdefinestyle{quotestyle}{
+    backgroundcolor=quotebg,
+    linecolor=quoteborder,
+    linewidth=4pt,           % 左侧竖线宽度 - 增加到 4pt 使竖线更明显
+    leftline=true,           % 只显示左侧线
+    rightline=false,
+    topline=false,
+    bottomline=false,
+    leftmargin=8pt,          % 外部左边距，使整个引用块向右缩进
+    rightmargin=0pt,
+    innerleftmargin=20pt,    % 左侧内边距，文本与竖线的距离
+    innerrightmargin=12pt,
+    innertopmargin=10pt,     % 增加上下内边距
+    innerbottommargin=10pt,
+    skipabove=15pt,          % 引用块前的间距
+    skipbelow=15pt,          % 引用块后的间距
+    roundcorner=0pt,
+    splittopskip=\topskip,   % 跨页时顶部间距
+    splitbottomskip=0pt,     % 跨页时底部间距
+    everyline=true           % 每一行都应用样式
+}
+$endif$
+
+% --- Document Body ---
+\begin{document}
+
+
+% Cover Page
+$if(cover-image)$
+$if(cover_title_text)$
+% Custom cover with text overlay
+\newpage
+\thispagestyle{empty}
+\pagenumbering{gobble}
+
+% Set cover background
+\AddToShipoutPicture*{%
+    \AtPageLowerLeft{%
+        \includegraphics[width=\paperwidth,height=\paperheight,keepaspectratio]{$cover-image$}%
+    }%
+}
+
+% Cover text setup with improved layout
+\vspace*{0pt}
+
+% Title section - positioned in upper third
+$if(cover_title_text)$
+$if(cover_title_color)$
+\definecolor{covertitlecolor}{HTML}{$cover_title_color$}
+$endif$
+\vspace*{0.15\textheight}
+\begin{center}
+{\fontsize{$if(cover_title_font_size)$$cover_title_font_size$$else$48$endif$pt}{$if(cover_title_line_height)$$cover_title_line_height$$else$65$endif$pt}\selectfont
+$if(cover_title_color)$\color{covertitlecolor}$endif$
+\parbox{0.9\textwidth}{\centering\textbf{$cover_title_text$}}}
+\end{center}
+$endif$
+
+% Subtitle section - right below title with minimal spacing
+$if(cover_subtitle_text)$
+$if(cover_subtitle_color)$
+\definecolor{coversubtitlecolor}{HTML}{$cover_subtitle_color$}
+$endif$
+\vspace{0.03\textheight}
+\begin{center}
+{\fontsize{$if(cover_subtitle_font_size)$$cover_subtitle_font_size$$else$18$endif$pt}{$if(cover_subtitle_line_height)$$cover_subtitle_line_height$$else$24$endif$pt}\selectfont
+$if(cover_subtitle_color)$\color{coversubtitlecolor}$endif$
+\parbox{0.9\textwidth}{\centering $cover_subtitle_text$}}
+\end{center}
+$endif$
+
+% Flexible space to push bottom content down
+\vfill
+
+% Author section - positioned at bottom
+$if(cover_author_text)$
+$if(cover_author_color)$
+\definecolor{coverauthorcolor}{HTML}{$cover_author_color$}
+$endif$
+\begin{center}
+{\fontsize{$if(cover_author_font_size)$$cover_author_font_size$$else$24$endif$pt}{$if(cover_author_line_height)$$cover_author_line_height$$else$32$endif$pt}\selectfont
+$if(cover_author_color)$\color{coverauthorcolor}$endif$
+$cover_author_text$}
+\end{center}
+$endif$
+
+% Export date section - positioned below author
+$if(cover_export_date)$
+$if(cover_subtitle_color)$
+\definecolor{coverdatecolor}{HTML}{$cover_subtitle_color$}
+$else$
+\definecolor{coverdatecolor}{HTML}{C0C0C0}
+$endif$
+\vspace{0.02\textheight}
+\begin{center}
+{\fontsize{14pt}{14pt}\selectfont
+\color{coverdatecolor}
+$cover_export_date$}
+\end{center}
+$endif$
+
+% Bottom margin
+\vspace*{0.08\textheight}
+\clearpage
+\ClearShipoutPicture
+
+$else$
+% Standard cover without text overlay
+\includepdf[pages={1},pagecommand={\thispagestyle{empty}},width=\paperwidth]{$cover-image$}
+$endif$
+$endif$
+
+% Title Page (Commented out - removed as the cover already contains the book info)
+% \newcommand{\mytitlepage}{
+%     \thispagestyle{empty}
+%     \begin{center}
+%     \vspace*{2cm}
+%     {\Huge\bfseries $title$\par}
+%     \vspace{1cm}
+%     {\Large $author$\par}
+%     \vspace{1.5cm}
+%     {\large $date$\par}
+%     $if(exported)$
+%     \vspace{0.8cm}
+%     {\normalsize 导出时间：$exported$\par}
+%     $endif$
+%     $if(website)$
+%     \vspace{0.5cm}
+%     {\normalsize 在线阅读：\url{$website$\par}
+%     $endif$
+%     \vfill
+%     \end{center}
+%     \newpage
+%     \setcounter{page}{1}
+% }
+% \mytitlepage
+
+% Table of Contents - prevent blank page after cover
+\clearpage
+\thispagestyle{empty} % Clear header style
+\pdfbookmark[0]{目录}{toc}
+
+% 在生成目录之前立即设置格式
+\makeatletter
+% 设置章节编号宽度 - 确保编号和标题之间有足够间距
+\setlength{\cftchapnumwidth}{2em}
+\setlength{\cftsecnumwidth}{3em}
+\setlength{\cftsubsecnumwidth}{4em}
+\setlength{\cftsubsubsecnumwidth}{5em}
+
+% 设置章节标题缩进 - 恢复正常层级缩进
+\setlength{\cftchapindent}{1em}
+\setlength{\cftsecindent}{2em}
+\setlength{\cftsubsecindent}{3em}
+\setlength{\cftsubsubsecindent}{4em}
+
+% 确保点线显示
+\renewcommand{\cftchapdotsep}{\cftdotsep}
+\renewcommand{\cftsecdotsep}{\cftdotsep}
+\renewcommand{\cftsubsecdotsep}{\cftdotsep}
+\renewcommand{\cftsubsubsecdotsep}{\cftdotsep}
+
+% 设置章节格式
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftchappagefont}{\bfseries}
+\renewcommand{\cftsecfont}{\normalfont}
+\renewcommand{\cftsubsecfont}{\normalfont}
+\renewcommand{\cftsubsubsecfont}{\normalfont}
+
+% 设置章节间距
+\setlength{\cftbeforechapskip}{1em}
+\setlength{\cftbeforesecskip}{0.5em}
+\setlength{\cftbeforesubsecskip}{0em}
+\setlength{\cftbeforesubsubsecskip}{0em}
+\makeatother
+
+\tableofcontents
+% 避免目录后的空白页
+\let\cleardoublepage\relax
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% Reset to left alignment for main content
+\raggedright
+
+% 设置书签深度
+\setcounter{tocdepth}{4}
+\setcounter{secnumdepth}{4}
+
+% Main Content
+$body$
+
+% Back Cover
+$if(backcover-image)$
+\clearpage
+\thispagestyle{empty}
+\pagenumbering{gobble}
+
+% Set backcover background to fill entire page
+\AddToShipoutPicture*{%
+    \AtPageLowerLeft{%
+        \includegraphics[width=\paperwidth,height=\paperheight,keepaspectratio=false]{$backcover-image$}%
+    }%
+}
+
+% Define back cover colors with defaults
+$if(backcover_text_color)$
+\definecolor{backcovertext}{HTML}{$backcover_text_color$}
+$else$
+\definecolor{backcovertext}{HTML}{000000}  % Default black
+$endif$
+
+$if(backcover_link_color)$
+\definecolor{backcoverlink}{HTML}{$backcover_link_color$}
+$else$
+\definecolor{backcoverlink}{HTML}{0066CC}  % Default blue
+$endif$
+
+% Enhanced back cover layout with configurable positioning
+\vspace*{$if(backcover_top_margin)$$backcover_top_margin$$else$0.2\textheight$endif$}
+
+\begin{center}
+
+% Back cover text section
+$if(backcover_text)$
+{\fontsize{$if(backcover_text_font_size)$$backcover_text_font_size$$else$16$endif$pt}{$if(backcover_text_line_height)$$backcover_text_line_height$$else$24$endif$pt}\selectfont
+\color{backcovertext}
+\parbox{0.8\textwidth}{\centering $backcover_text$}}
+
+\vspace{$if(backcover_spacing_1)$$backcover_spacing_1$$else$1.5cm$endif$}
+$endif$
+
+% QR code section
+$if(qrcode_image)$
+\includegraphics[width=$if(qrcode_size)$$qrcode_size$$else$0.15\paperwidth$endif$]{$qrcode_image$}
+
+\vspace{$if(backcover_spacing_2)$$backcover_spacing_2$$else$1cm$endif$}
+$endif$
+
+% Website link section - use local hypersetup to override global link colors
+\begingroup
+\hypersetup{
+    linkcolor=backcoverlink,
+    urlcolor=backcoverlink,
+    citecolor=backcoverlink
+}
+$if(backcover_link_text)$
+$if(backcover_link_url)$
+{\fontsize{$if(backcover_link_font_size)$$backcover_link_font_size$$else$14$endif$pt}{$if(backcover_link_line_height)$$backcover_link_line_height$$else$20$endif$pt}\selectfont
+\href{$backcover_link_url$}{$backcover_link_text$}}
+$else$
+{\fontsize{$if(backcover_link_font_size)$$backcover_link_font_size$$else$14$endif$pt}{$if(backcover_link_line_height)$$backcover_link_line_height$$else$20$endif$pt}\selectfont
+\color{backcoverlink}
+$backcover_link_text$}
+$endif$
+$else$
+% Fallback to website URL if no custom link text
+$if(website)$
+{\fontsize{$if(backcover_link_font_size)$$backcover_link_font_size$$else$14$endif$pt}{$if(backcover_link_line_height)$$backcover_link_line_height$$else$20$endif$pt}\selectfont
+\url{$website$}}
+$endif$
+$endif$
+\endgroup
+
+\end{center}
+
+\vspace*{$if(backcover_bottom_margin)$$backcover_bottom_margin$$else$0.2\textheight$endif$}
+$endif$
+
+\end{document}
