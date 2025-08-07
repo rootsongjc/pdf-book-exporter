@@ -5,6 +5,11 @@
 \usepackage{eso-pic}  % For background image placement
 \usepackage{xstring}  % For string comparison in conditionals
 
+% Define allowbreak command early to prevent undefined control sequence errors
+% This is needed by the table-wrap filter which inserts \allowbreak commands
+% Use a more robust definition that works in all contexts including textbf
+\DeclareRobustCommand{\allowbreak}{\discretionary{}{}{}}
+
 % Engine compatibility check and optimization recommendations
 % The PDF generation tool automatically selects the optimal LaTeX engine:
 % - LuaLaTeX: Used when emoji support is enabled (--emoji flag)

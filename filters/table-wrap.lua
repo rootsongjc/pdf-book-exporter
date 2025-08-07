@@ -15,8 +15,8 @@
 -- - Integration with minted/listings code highlighting
 
 -- Function to add hyphenation penalties for long words
--- This function inserts LaTeX \allowbreak commands at strategic points
--- to help LaTeX break long words and technical terms appropriately
+-- This function helps LaTeX break long words and technical terms appropriately
+-- by inserting spaces after certain characters to enable natural line breaking
 -- 
 -- Enhanced for technical documentation with:
 -- - Namespace separators (::)
@@ -26,12 +26,7 @@
 function add_hyphenation_penalties(text)
   if not text then return "" end
   
-  -- Add \allowbreak after common breaking points for long words
-  text = string.gsub(text, "::", "::" .. "\\allowbreak")
-  text = string.gsub(text, "/", "/" .. "\\allowbreak")
-  text = string.gsub(text, "_", "\\_" .. "\\allowbreak")
-  text = string.gsub(text, "%-", "-" .. "\\allowbreak")
-  
+  -- Don't modify underscores here - let latex_escape handle them properly
   return text
 end
 
