@@ -2,8 +2,6 @@
 
 A comprehensive tool for exporting Hugo book directories to professional PDF files, with enhanced support for multilingual content, emoji rendering, and customizable styling.
 
-
-
 ## ✨ Features
 
 - 📚 **Hugo Book Structure Support** - Automatically processes `_index.md` and `index.md` files with weight-based ordering
