@@ -18,6 +18,8 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
     import tree
     import emoji_support
     import image_utils
+    
+    success = False
 
     available_font = image_utils.get_available_fonts() if hasattr(image_utils, 'get_available_fonts') else metadata.get('font')
     cache_dir = cache_utils.get_cache_dir(book_dir)
@@ -115,9 +117,9 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                     return build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_arg, appendix_path, emoji=False, max_table_width=max_table_width)
                 except Exception as fallback_error:
                     print(f"❌ Fallback also failed: {fallback_error}")
-                    return
+                    return False
             else:
-                return
+                return False
         for warning in emoji_validation['warnings']:
             print(f"⚠️  {warning}")
         if 'system_info' in emoji_validation:
@@ -216,17 +218,17 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
         except Exception as e:
             print(f"⚠️  Error adding ANSI cleanup filter: {e}")
         try:
-            if os.path.exists(minted_filter_path):
-                cmd.extend([f'--lua-filter={minted_filter_path}'])
-                print(f"✅ Added minted filter: {minted_filter_path}")
-        except Exception as e:
-            print(f"⚠️  Error adding minted filter: {e}")
-        try:
             if os.path.exists(cleanup_filter_path):
                 cmd.extend([f'--lua-filter={cleanup_filter_path}'])
                 print(f"✅ Added cleanup filter: {cleanup_filter_path}")
         except Exception as e:
             print(f"⚠️  Error adding cleanup filter: {e}")
+        try:
+            if os.path.exists(minted_filter_path):
+                cmd.extend([f'--lua-filter={minted_filter_path}'])
+                print(f"✅ Added minted filter: {minted_filter_path}")
+        except Exception as e:
+            print(f"⚠️  Error adding minted filter: {e}")
         try:
             if os.path.exists(symbol_filter_path):
                 cmd.extend([f'--lua-filter={symbol_filter_path}'])
@@ -349,7 +351,7 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                     print("   - Try with smaller content sections")
                     print("   - Check system resources")
                     print("   - Verify LaTeX installation is not corrupted")
-                    return
+                    return False
             except subprocess.CalledProcessError as e:
                 last_error = e
                 print(f'❌ Pandoc execution failed (attempt {retry_count + 1}): {e}')
@@ -363,7 +365,7 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                     continue
                 else:
                     emoji_support._handle_final_pandoc_failure(e, emoji, pdf_engine, emoji_validation, tmp_path, template_path, emoji_filter_path)
-                    return
+                    return False
             except Exception as e:
                 last_error = e
                 print(f'❌ Unexpected error during PDF generation: {e}')
@@ -375,14 +377,70 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                     print(f"❌ All retry attempts failed. Last error: {e}")
                     print(f"📁 Debug files preserved:")
                     print(f"   Intermediate markdown: {tmp_path}")
-                    return
+                    return False
         try:
             if result.stderr:
                 print(f"⚠️  Pandoc warnings:\n{result.stderr}")
             if not os.path.exists(output_pdf):
                 print("❌ PDF file was not created despite successful Pandoc execution")
-                return
+                return False
             print(f'✅ PDF generated successfully at {output_pdf}')
+            success = True
+
+            # Additionally export LaTeX source for debugging/diffing
+            try:
+                output_tex = os.path.splitext(output_pdf)[0] + '.tex'
+                cmd_tex = [
+                    'pandoc',
+                    '-f', 'markdown+emoji',
+                    tmp_path,
+                    '-t', 'latex',
+                    '-o', output_tex,
+                    '--template=' + template_path,
+                    '-V', f'title={metadata.get("title", "Book")}',
+                    '-V', f'author={metadata.get("author", "Author")}',
+                    '-V', f'date={metadata.get("date", "2024")}',
+                    '--toc',
+                    '--toc-depth=4',
+                    '-V', 'geometry:margin=2.5cm',
+                    '-V', f'exported={datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+                    '-V', f'website={metadata.get("website", "")}',
+                    '-V', f'subject={metadata.get("subject", "")}',
+                    '-V', f'keywords={metadata.get("keywords", "")}',
+                    '-V', f'creator={metadata.get("creator", "LaTeX with hyperref")}',
+                    '-V', f'producer={metadata.get("producer", "LuaLaTeX" if emoji else "XeLaTeX")}',
+                    '-V', 'fontsize=12pt',
+                    '-V', 'linestretch=1.5',
+                    '--listings',
+                    '--number-sections',
+                    '--top-level-division=chapter',
+                    f'--resource-path={temp_dir}',
+                    '-V', 'bookmarks=true',
+                    '-V', 'tables=true',
+                    '-V', f'max_table_width={max_table_width}',
+                    '--wrap=preserve',
+                    '--columns=120'
+                ]
+                # Reuse the same filters (Lua filters are honored for LaTeX as well)
+                for f in [emoji_filter_path, os.path.join(filters_dir, 'fix-lstinline.lua'), os.path.join(filters_dir, 'ansi-cleanup.lua'), os.path.join(filters_dir, 'minted-filter.lua'), cleanup_filter_path, symbol_filter_path, lua_filter_path]:
+                    if os.path.exists(f):
+                        cmd_tex.extend(['--lua-filter=' + f])
+                tex_result = subprocess.run(cmd_tex, check=True, capture_output=True, text=True, timeout=300)
+                if tex_result.stderr:
+                    print(f"⚠️  LaTeX export warnings:\n{tex_result.stderr}")
+                print(f"📝 LaTeX source exported: {output_tex}")
+                
+                # Clean up the generated .tex file after successful PDF generation
+                try:
+                    if os.path.exists(output_tex):
+                        os.unlink(output_tex)
+                        print(f"🗑️  Cleaned up LaTeX source file: {output_tex}")
+                except Exception as cleanup_error:
+                    print(f"⚠️  Failed to clean up LaTeX source file: {cleanup_error}")
+                    
+            except Exception as e:
+                print(f"⚠️  Failed to export LaTeX source: {e}")
+
             end_time = time.time()
             processing_time = end_time - start_time
             try:
@@ -418,9 +476,11 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
             if emoji and os.path.exists(emoji_filter_path):
                 print(f"   Emoji filter: {emoji_filter_path}")
             # os.unlink(tmp_path)
+            # os.unlink(tmp_path)
+        return success
 
 def build_pdf(book_dir, root_node, output_pdf, metadata, template_path=None, appendix_path=None, emoji=False, max_table_width=0.98):
-    build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path, appendix_path, emoji, max_table_width)
+    return build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path, appendix_path, emoji, max_table_width)
 
 def prepare_cover_for_latex(cover_path, config, temp_dir, cache_dir=None):
     """Prepare cover image for LaTeX processing without text overlay."""

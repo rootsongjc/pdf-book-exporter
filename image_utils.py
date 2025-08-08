@@ -107,8 +107,22 @@ def convert_webp_to_png(webp_path, output_dir, cache_dir=None):
 def process_images_in_content(content, book_dir, temp_dir, temp_pngs, current_file_path, cache_dir=None):
     os.makedirs(temp_dir, exist_ok=True)
     processed_images = {}
+    
+    # Only remove mermaid code blocks, not other types
     content = re.sub(r'```mermaid[\s\S]*?```', '', content)
+    
+    # Track code block boundaries to avoid processing content inside them
+    def is_inside_code_block(text, position):
+        before_text = text[:position]
+        code_blocks = re.finditer(r'```[\w]*', before_text)
+        count = len(list(code_blocks))
+        return count % 2 == 1  # Odd count means we're inside a code block
+    
     def replace_image(match):
+        # Check if this image is inside a code block
+        if is_inside_code_block(content, match.start()):
+            return match.group(0)  # Don't process images inside code blocks
+            
         alt_text = match.group(1)
         img_path = match.group(2)
         if img_path.startswith('http://') or img_path.startswith('https://'):
@@ -240,7 +254,34 @@ def process_images_in_content(content, book_dir, temp_dir, temp_pngs, current_fi
             '\\end{figure}\n')
         return latex
     content = re.sub(r'!\[(.*?)\]\((.*?)\)', replace_image, content)
-    content = re.sub(r'\n\s*({[^{]*}|\{:[^}]*\}|<!--.*?-->)', '\n', content)
+    
+    # Remove Hugo shortcodes and HTML comments, but avoid processing content inside code blocks
+    lines = content.split('\n')
+    processed_lines = []
+    inside_code_block = False
+    
+    for line in lines:
+        # Check if we're entering or leaving a code block
+        if line.strip().startswith('```'):
+            inside_code_block = not inside_code_block
+            processed_lines.append(line)
+            continue
+            
+        # If we're inside a code block, preserve the line as-is
+        if inside_code_block:
+            processed_lines.append(line)
+            continue
+            
+        # Only apply cleanup outside of code blocks
+        # Remove Hugo shortcode parameters and HTML comments
+        if re.match(r'^\s*(\{:[^}]*\}|<!--.*?-->)\s*$', line):
+            continue  # Skip this line entirely
+        else:
+            processed_lines.append(line)
+    
+    content = '\n'.join(processed_lines)
+    
+    # Remove Hugo template syntax
     content = re.sub(r'{{[%<][\s\S]*?[%>]}}', '', content)
     return content
 
