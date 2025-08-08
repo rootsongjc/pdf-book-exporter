@@ -38,7 +38,10 @@ def main():
     book_config = load_book_config(args.book_dir)
     
     output_pdf = args.output or os.path.join(args.book_dir, 'book.pdf')
-    build_pdf(args.book_dir, root_node, output_pdf, book_config, args.template, args.appendix, args.emoji, args.max_table_width)
+    ok = build_pdf(args.book_dir, root_node, output_pdf, book_config, args.template, args.appendix, args.emoji, args.max_table_width)
+    if not ok:
+        # Non-zero exit so callers (e.g., Makefile) can detect failure
+        raise SystemExit(1)
 
 if __name__ == '__main__':
     main()
