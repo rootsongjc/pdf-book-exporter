@@ -417,10 +417,10 @@ $endif$
 \renewcommand{\arraystretch}{1.6}
 \setlength{\arrayrulewidth}{0.5pt}
 
-% 定义表格列类型
-\newcolumntype{L}{>{\raggedright\arraybackslash}p{0.25\textwidth}}
-\newcolumntype{C}{>{\centering\arraybackslash}p{0.25\textwidth}}
-\newcolumntype{R}{>{\raggedleft\arraybackslash}p{0.25\textwidth}}
+% 定义表格列类型 - 使用更合理的宽度分配
+\newcolumntype{L}{>{\raggedright\arraybackslash}p{0.33\textwidth}}
+\newcolumntype{C}{>{\centering\arraybackslash}p{0.33\textwidth}}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}p{0.33\textwidth}}
 
 %%%% Code highlight section
 % This section configures syntax highlighting for code blocks in various languages
@@ -798,13 +798,13 @@ $endif$
 \setlength{\LTpre}{1.5em}
 \setlength{\LTpost}{1.5em}
 
-% 表格优化：防止文字重叠
-\setlength{\tabcolsep}{6pt} % 增加列间距
+% 表格优化：防止文字重叠，适配全宽度表格
+\setlength{\tabcolsep}{5pt} % 适当的列间距，适配全宽度表格
 \setlength{\extrarowheight}{3pt} % 增加行高
 \setlength{\LTcapwidth}{\textwidth} % longtable 标题宽度
 
 % 表格字体大小和宽度控制
-\newcommand{\maxTableWidth}{0.98\textwidth}
+\newcommand{\maxTableWidth}{\textwidth}
 % Note: \tabulinesep is from longtabu package, not longtable
 % For longtable, we use \arraystretch and \tabcolsep for spacing control
 \newcommand{\tablefontsize}{\small}
