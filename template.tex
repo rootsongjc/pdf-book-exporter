@@ -1,5 +1,8 @@
 \documentclass[12pt,a4paper,openany]{book}
 
+% 设置基础行间距和段落间距
+\linespread{1.2}  % 增加行间距，从默认的1.0提升到1.2
+
 % --- Packages ---
 \usepackage{iftex}
 \usepackage{eso-pic}  % For background image placement
@@ -380,7 +383,7 @@ $endif$
 
 % --- Pandoc Compatibility ---
 \providecommand{\tightlist}{%
-  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+  \setlength{\itemsep}{2pt}\setlength{\parskip}{4pt}}  % 增加列表项间距和段落间距
 \newcommand{\passthrough}[1]{#1}
 
 % Define missing text formatting commands
@@ -452,8 +455,8 @@ $endif$
     innerrightmargin=12pt,
     innertopmargin=10pt,     % 增加上下内边距
     innerbottommargin=10pt,
-    skipabove=15pt,          % 引用块前的间距
-    skipbelow=15pt,          % 引用块后的间距
+    skipabove=20pt,          % 引用块前的间距，增加与段落的区分
+    skipbelow=20pt,          % 引用块后的间距，增加与段落的区分
     roundcorner=0pt,
     splittopskip=\topskip,   % 跨页时顶部间距
     splitbottomskip=0pt,     % 跨页时底部间距
@@ -471,8 +474,8 @@ $endif$
     innerrightmargin=12pt,
     innertopmargin=6pt,   % 减少上边距，让代码更靠近边框顶部
     innerbottommargin=6pt, % 减少下边距，让代码更靠近边框底部
-    skipabove=12pt,
-    skipbelow=12pt,
+    skipabove=18pt,          % 代码块前的间距，增加与段落的区分
+    skipbelow=18pt,          % 代码块后的间距，增加与段落的区分
     roundcorner=0pt,
     splittopskip=\topskip, % 跨页时顶部间距
     splitbottomskip=0pt,   % 跨页时底部间距
@@ -829,7 +832,7 @@ $endif$
 % Text alignment - ensure left alignment
 \raggedright
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{3pt plus 1pt minus 1pt}
+\setlength{\parskip}{8pt plus 2pt minus 1pt}  % 增加段落间距，从3pt提升到8pt
 
 % ======== 脚注样式优化 ========
 % 现代化脚注设计，提升视觉效果和可读性
