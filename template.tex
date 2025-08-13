@@ -831,6 +831,39 @@ $endif$
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{3pt plus 1pt minus 1pt}
 
+% ======== 脚注样式优化 ========
+% 现代化脚注设计，提升视觉效果和可读性
+
+% 加载脚注样式包，设置悬挂缩进和左对齐
+\usepackage[hang,flushmargin]{footmisc}
+
+% 定义脚注线条颜色 - 使用浅灰色，更加现代简洁
+\definecolor{footnoterulecolor}{RGB}{180,180,180}
+
+% 重新定义脚注线条样式
+\renewcommand{\footnoterule}{%
+  \kern -3pt%
+  {\color{footnoterulecolor}%
+   \hrule width \textwidth height 0.4pt depth 0pt}%
+  \kern 8pt%
+}
+
+% 脚注文本样式优化
+\setlength{\footnotesep}{8pt}
+\setlength{\skip\footins}{12pt plus 4pt minus 2pt}
+
+% 脚注字体大小优化
+\renewcommand{\footnotesize}{\fontsize{9}{11}\selectfont}
+
+% 重新定义脚注编号样式 - 使用平行数字格式，不使用上标
+\makeatletter
+\renewcommand\@makefntext[1]{%
+  \setlength{\parindent}{0pt}%          % 无首行缩进
+  \footnotesize\@thefnmark.\,#1%        % 编号 + 点 + 小间距 + 内容
+}
+\makeatother
+% ======== 脚注样式优化结束 ========
+
 % Enhanced Unicode character support and emoji fallback commands
 \newcommand{\greencheckmark}{\textcolor{green}{✓}}
 \newcommand{\redcrossmark}{\textcolor{red}{✗}}

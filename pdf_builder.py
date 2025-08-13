@@ -139,6 +139,7 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
         minted_filter_path = os.path.join(filters_dir, 'minted-filter.lua')
         emoji_filter_path = os.path.join(filters_dir, 'emoji-passthrough.lua')
         symbol_filter_path = os.path.join(filters_dir, 'symbol-fallback-filter.lua')
+        simple_image_attr_cleanup_path = os.path.join(filters_dir, 'simple-image-attr-cleanup.lua')
 
         pdf_engine = emoji_validation['engine']
         if emoji:
@@ -203,6 +204,12 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                 print(f"⚠️  Error configuring emoji filter: {e}")
                 print("   Continuing without emoji filter")
         cmd.extend(['--columns=120'])
+        try:
+            if os.path.exists(simple_image_attr_cleanup_path):
+                cmd.extend([f'--lua-filter={simple_image_attr_cleanup_path}'])
+                print(f"✅ Added simple image attribute cleanup filter: {simple_image_attr_cleanup_path}")
+        except Exception as e:
+            print(f"⚠️  Error adding simple image attribute cleanup filter: {e}")
         try:
             fix_lstinline_path = os.path.join(filters_dir, 'fix-lstinline.lua')
             if os.path.exists(fix_lstinline_path):

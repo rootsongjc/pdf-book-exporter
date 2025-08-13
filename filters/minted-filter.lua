@@ -47,9 +47,9 @@ function CodeBlock(elem)
         lang = "text"
     end
 
-    -- Use minted with mdframed and precise negative margins for line numbers inside frame
-    local minted_begin = "\\begin{mdframed}[style=codeblockstyle]\n\\begin{minted}{" .. lang .. "}"
-    local minted_end = "\\end{minted}\n\\end{mdframed}"
+    -- Use minted with mdframed and add spacing before and after
+    local minted_begin = "\\vspace{0.5em}\n\\begin{mdframed}[style=codeblockstyle]\n\\begin{minted}{" .. lang .. "}"
+    local minted_end = "\\end{minted}\n\\end{mdframed}\n\\vspace{0.5em}"
 
     -- Return raw LaTeX block
     return pandoc.RawBlock("latex", minted_begin .. "\n" .. elem.text .. "\n" .. minted_end)
