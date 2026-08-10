@@ -831,6 +831,10 @@ $endif$
 
 % Text alignment - ensure left alignment
 \raggedright
+% 图片改为 [H] 就地放置后，页面不再靠浮动体调节高度。若仍用 \flushbottom，
+% 版心高度的差额会被摊进段间与图片周围的弹性间距，在页面中部撕出空洞；
+% \raggedbottom 把差额统一留在页尾，这是书籍排版的常规做法。
+\raggedbottom
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{8pt plus 2pt minus 1pt}  % 增加段落间距，从3pt提升到8pt
 
@@ -1370,40 +1374,74 @@ $endif$
 \setlist[itemize,1]{leftmargin=1.2em,label=\textbullet,itemsep=2pt,parsep=0pt}
 \setlist[enumerate,1]{leftmargin=1.8em,itemsep=2pt,parsep=0pt}
 
+% 引用块的上下间距（quote_color 分支与原 quotestyle 的 15pt 保持一致）
+\newlength{\quoteskipabove}
+\setlength{\quoteskipabove}{20pt}
+\newlength{\quoteskipbelow}
+\setlength{\quoteskipbelow}{20pt}
+
+% 引用块实现：先把内容排入盒子，再以行内方式绘制背景与左侧竖线。
+% 之前基于 mdframed 的实现里，框体由独立的分片逻辑放置：当引用块紧跟
+% 标题（\@nobreak 生效）、或落在页底/页顶残余空间时，背景框会被画到
+% 标题文字之上（官方 PDF v2025.11.08 全书共 36 处标题被引用框覆盖）。
+% 行内盒子与内容同流，机制上不可能错位；本书引用均为提要式短引用，
+% 不需要跨页拆分。整块不可分页配合 heading-quote-keep.lua 中的
+% \needspace，保证“标题 + 引用”作为整体换页。
+\newsavebox{\quotecontentbox}
+\newcommand{\quoteboxbegin}{%
+  \par%
+  \begin{lrbox}{\quotecontentbox}%
+  \begin{minipage}{\dimexpr\linewidth-8pt-4pt-20pt-12pt\relax}%
+  \setlength{\parskip}{6pt}%
+}
+\newcommand{\quoteboxend}{%
+  \end{minipage}%
+  \end{lrbox}%
+  \par\addvspace{\quoteskipabove}%
+  \noindent\hspace*{8pt}%
+  {\color{quoteborder}\vrule width 4pt}%
+  {\setlength{\fboxsep}{0pt}%
+   \colorbox{quotebg}{%
+     \hspace{20pt}%
+     \raisebox{0pt}[\dimexpr\ht\quotecontentbox+10pt\relax][\dimexpr\dp\quotecontentbox+10pt\relax]{\usebox{\quotecontentbox}}%
+     \hspace{12pt}}}%
+  \par\addvspace{\quoteskipbelow}%
+}
+
 % 重新定义 quote 环境，使用左侧竖线样式
 \renewenvironment{quote}{%
-  \begin{mdframed}[style=quotestyle]%
+  \quoteboxbegin%
   $if(quote_color)$\color{quotecolor}$endif$% 应用引用文字颜色
   % 不使用斜体，保持正常字体
 }{%
-  \end{mdframed}%
+  \quoteboxend%
 }
 
 % 定义 blockquote 环境（Pandoc 使用这个）
 \newenvironment{blockquote}{%
-  \begin{mdframed}[style=quotestyle]%
+  \quoteboxbegin%
   $if(quote_color)$\color{quotecolor}$endif$% 应用引用文字颜色
   % 不使用斜体，保持正常字体
 }{%
-  \end{mdframed}%
+  \quoteboxend%
 }
 
 % 定义 quotation 环境（可能的 Pandoc 引用环境）
 \renewenvironment{quotation}{%
-  \begin{mdframed}[style=quotestyle]%
+  \quoteboxbegin%
   $if(quote_color)$\color{quotecolor}$endif$% 应用引用文字颜色
   % 不使用斜体，保持正常字体
 }{%
-  \end{mdframed}%
+  \quoteboxend%
 }
 
 % 定义 quoteblock 环境（备用）
 \newenvironment{quoteblock}{%
-  \begin{mdframed}[style=quotestyle]%
+  \quoteboxbegin%
   $if(quote_color)$\color{quotecolor}$endif$% 应用引用文字颜色
   % 不使用斜体，保持正常字体
 }{%
-  \end{mdframed}%
+  \quoteboxend%
 }
 
 % --- Hyperref (must be loaded late) ---
@@ -1455,28 +1493,9 @@ $endif$
 
 $if(quote_color)$
 \definecolor{quotecolor}{HTML}{$quote_color$}
-% 更新 quotestyle 的文字颜色而不是重新定义整个环境
-\mdfdefinestyle{quotestyle}{
-    backgroundcolor=quotebg,
-    linecolor=quoteborder,
-    linewidth=4pt,           % 左侧竖线宽度 - 增加到 4pt 使竖线更明显
-    leftline=true,           % 只显示左侧线
-    rightline=false,
-    topline=false,
-    bottomline=false,
-    leftmargin=8pt,          % 外部左边距，使整个引用块向右缩进
-    rightmargin=0pt,
-    innerleftmargin=20pt,    % 左侧内边距，文本与竖线的距离
-    innerrightmargin=12pt,
-    innertopmargin=10pt,     % 增加上下内边距
-    innerbottommargin=10pt,
-    skipabove=15pt,          % 引用块前的间距
-    skipbelow=15pt,          % 引用块后的间距
-    roundcorner=0pt,
-    splittopskip=\topskip,   % 跨页时顶部间距
-    splitbottomskip=0pt,     % 跨页时底部间距
-    everyline=true           % 每一行都应用样式
-}
+% 引用块上下间距在启用文字颜色的排版方案下略收紧
+\setlength{\quoteskipabove}{15pt}
+\setlength{\quoteskipbelow}{15pt}
 $endif$
 
 % --- Document Body ---

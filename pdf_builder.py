@@ -205,6 +205,13 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                 print("   Continuing without emoji filter")
         cmd.extend(['--columns=120'])
         try:
+            heading_quote_keep_path = os.path.join(filters_dir, 'heading-quote-keep.lua')
+            if os.path.exists(heading_quote_keep_path):
+                cmd.extend([f'--lua-filter={heading_quote_keep_path}'])
+                print(f"✅ Added heading-quote keep filter: {heading_quote_keep_path}")
+        except Exception as e:
+            print(f"⚠️  Error adding heading-quote keep filter: {e}")
+        try:
             if os.path.exists(simple_image_attr_cleanup_path):
                 cmd.extend([f'--lua-filter={simple_image_attr_cleanup_path}'])
                 print(f"✅ Added simple image attribute cleanup filter: {simple_image_attr_cleanup_path}")
@@ -429,7 +436,12 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                     '--columns=120'
                 ]
                 # Reuse the same filters (Lua filters are honored for LaTeX as well)
-                for f in [emoji_filter_path, os.path.join(filters_dir, 'fix-lstinline.lua'), os.path.join(filters_dir, 'ansi-cleanup.lua'), os.path.join(filters_dir, 'minted-filter.lua'), cleanup_filter_path, symbol_filter_path, lua_filter_path]:
+                for f in [emoji_filter_path,
+                          os.path.join(filters_dir, 'heading-quote-keep.lua'),
+                          os.path.join(filters_dir, 'fix-lstinline.lua'),
+                          os.path.join(filters_dir, 'ansi-cleanup.lua'),
+                          os.path.join(filters_dir, 'minted-filter.lua'),
+                          cleanup_filter_path, symbol_filter_path, lua_filter_path]:
                     if os.path.exists(f):
                         cmd_tex.extend(['--lua-filter=' + f])
                 tex_result = subprocess.run(cmd_tex, check=True, capture_output=True, text=True, timeout=300)

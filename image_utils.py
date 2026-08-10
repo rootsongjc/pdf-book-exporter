@@ -210,9 +210,9 @@ def process_images_in_content(content, book_dir, temp_dir, temp_pngs, current_fi
                 return match.group(0)
         if abs_path in processed_images:
             escaped_path = processed_images[abs_path]
-            latex = ('\n\\begin{figure}[htbp]\n' +
+            latex = ('\n\\begin{figure}[H]\n' +
                 '  \\centering\n' +
-                f'  \\includegraphics[width=0.8\\textwidth]{{{escaped_path}}}\n' +
+                f'  \\includegraphics[width=0.8\\textwidth,height=0.85\\textheight,keepaspectratio]{{{escaped_path}}}\n' +
                 f'  \\caption{{{alt_text}}}\n' +
                 '\\end{figure}\n')
             return latex
@@ -247,9 +247,9 @@ def process_images_in_content(content, book_dir, temp_dir, temp_pngs, current_fi
             temp_pngs.append(target_path)
         escaped_path = latex_escape(target_path)
         processed_images[abs_path] = escaped_path
-        latex = ('\n\\begin{figure}[htbp]\n' +
+        latex = ('\n\\begin{figure}[H]\n' +
             '  \\centering\n' +
-            f'  \\includegraphics[width=0.8\\textwidth]{{{escaped_path}}}\n' +
+            f'  \\includegraphics[width=0.8\\textwidth,height=0.85\\textheight,keepaspectratio]{{{escaped_path}}}\n' +
             f'  \\caption{{{alt_text}}}\n' +
             '\\end{figure}\n')
         return latex
