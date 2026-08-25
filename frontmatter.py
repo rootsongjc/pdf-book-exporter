@@ -34,7 +34,11 @@ def parse_front_matter(path):
                     export_pdf = export_pdf_value in ['true', '1', 'yes']
                 elif line.startswith('pdf:'):
                     pdf_value = line.split(':', 1)[1].strip().lower()
-                    export_pdf = pdf_value in ['true', '1', 'yes']
+                    # Only treat explicit booleans as an exclusion switch: the
+                    # handbook's root _index.md uses `pdf:` for the release
+                    # download URL, which must not exclude the whole book.
+                    if pdf_value in ['true', '1', 'yes', 'false', '0', 'no']:
+                        export_pdf = pdf_value in ['true', '1', 'yes']
     return title, weight, draft, publish, export_pdf
 
 def should_include(path: str, metadata: tuple = None, include_drafts: bool = False) -> bool:
