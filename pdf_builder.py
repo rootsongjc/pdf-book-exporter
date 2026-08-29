@@ -1,9 +1,52 @@
 import os
+import re
 from datetime import datetime
+from functools import partial
 import tempfile
 import tree
 import emoji_support
 import cache_utils
+
+
+_LATEX_PACKAGE_DECLARATION = re.compile(
+    r"\\(?:usepackage|RequirePackage)\s*"
+    r"(?:\[[^]]*\]\s*)?\{([^}]*)\}",
+    re.DOTALL,
+)
+
+
+def _strip_latex_comments(source):
+    """Remove unescaped LaTeX comments before inspecting the preamble."""
+    uncommented_lines = []
+    for line in source.splitlines(keepends=True):
+        for index, character in enumerate(line):
+            if character != '%':
+                continue
+            backslashes = 0
+            cursor = index - 1
+            while cursor >= 0 and line[cursor] == '\\':
+                backslashes += 1
+                cursor -= 1
+            if backslashes % 2 == 0:
+                newline = line[len(line.rstrip('\r\n')):]
+                line = line[:index] + newline
+                break
+        uncommented_lines.append(line)
+    return ''.join(uncommented_lines)
+
+
+def _latex_template_loads_package(template_path, package_name):
+    """Return whether a template explicitly loads a LaTeX package."""
+    with open(template_path, 'r', encoding='utf-8') as template_file:
+        template_source = _strip_latex_comments(template_file.read())
+    template_preamble = template_source.split(r'\begin{document}', 1)[0]
+
+    for declaration in _LATEX_PACKAGE_DECLARATION.findall(template_preamble):
+        packages = (package.strip() for package in declaration.split(','))
+        if package_name in packages:
+            return True
+    return False
+
 
 def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_arg=None, appendix_path=None, emoji=False, max_table_width=0.98):
     import os
@@ -25,6 +68,19 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
     cache_dir = cache_utils.get_cache_dir(book_dir)
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        if template_path_arg and os.path.exists(template_path_arg):
+            template_path = template_path_arg
+        else:
+            template_path = os.path.join(os.path.dirname(__file__), 'template.tex')
+
+        template_has_float = _latex_template_loads_package(template_path, 'float')
+        template_has_needspace = _latex_template_loads_package(template_path, 'needspace')
+        figure_placement = 'H' if template_has_float else 'htbp'
+        if not template_has_float:
+            print("⚠️  Template does not load the LaTeX 'float' package; using [htbp] figure placement")
+        if not template_has_needspace:
+            print("⚠️  Template does not load the LaTeX 'needspace' package; heading-quote keep filter disabled")
+
         temp_pngs = []
         emoji_commands_content = ""
         if emoji:
@@ -92,8 +148,12 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                 processed_backcover_path = backcover_path
 
         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.md', prefix='debug_') as tmp:
+            process_images = partial(
+                image_utils.process_images_in_content,
+                figure_placement=figure_placement,
+            )
             for child in root_node.children:
-                tree.write_hierarchical_content(tmp, child, book_dir, temp_dir, temp_pngs, level=1, cache_dir=cache_dir, process_images_in_content=image_utils.process_images_in_content)
+                tree.write_hierarchical_content(tmp, child, book_dir, temp_dir, temp_pngs, level=1, cache_dir=cache_dir, process_images_in_content=process_images)
             tmp_path = tmp.name
             if appendix_path:
                 with open(appendix_path, 'r', encoding='utf-8') as appendix_file:
@@ -128,11 +188,6 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
             if 'tex_distribution' in system_info:
                 print(f"📄 LaTeX: {system_info['tex_distribution']}")
 
-        if template_path_arg and os.path.exists(template_path_arg):
-            template_path = template_path_arg
-        else:
-            template_path = os.path.join(os.path.dirname(__file__), 'template.tex')
-
         filters_dir = os.path.join(os.path.dirname(__file__), 'filters')
         cleanup_filter_path = os.path.join(filters_dir, 'cleanup-filter.lua')
         lua_filter_path = os.path.join(filters_dir, 'table-wrap.lua')
@@ -140,6 +195,7 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
         emoji_filter_path = os.path.join(filters_dir, 'emoji-passthrough.lua')
         symbol_filter_path = os.path.join(filters_dir, 'symbol-fallback-filter.lua')
         simple_image_attr_cleanup_path = os.path.join(filters_dir, 'simple-image-attr-cleanup.lua')
+        heading_quote_keep_path = os.path.join(filters_dir, 'heading-quote-keep.lua')
 
         pdf_engine = emoji_validation['engine']
         if emoji:
@@ -205,8 +261,7 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                 print("   Continuing without emoji filter")
         cmd.extend(['--columns=120'])
         try:
-            heading_quote_keep_path = os.path.join(filters_dir, 'heading-quote-keep.lua')
-            if os.path.exists(heading_quote_keep_path):
+            if template_has_needspace and os.path.exists(heading_quote_keep_path):
                 cmd.extend([f'--lua-filter={heading_quote_keep_path}'])
                 print(f"✅ Added heading-quote keep filter: {heading_quote_keep_path}")
         except Exception as e:
@@ -436,12 +491,16 @@ def build_pdf_xelatex(book_dir, root_node, output_pdf, metadata, template_path_a
                     '--columns=120'
                 ]
                 # Reuse the same filters (Lua filters are honored for LaTeX as well)
-                for f in [emoji_filter_path,
-                          os.path.join(filters_dir, 'heading-quote-keep.lua'),
-                          os.path.join(filters_dir, 'fix-lstinline.lua'),
-                          os.path.join(filters_dir, 'ansi-cleanup.lua'),
-                          os.path.join(filters_dir, 'minted-filter.lua'),
-                          cleanup_filter_path, symbol_filter_path, lua_filter_path]:
+                latex_filters = [emoji_filter_path]
+                if template_has_needspace:
+                    latex_filters.append(heading_quote_keep_path)
+                latex_filters.extend([
+                    os.path.join(filters_dir, 'fix-lstinline.lua'),
+                    os.path.join(filters_dir, 'ansi-cleanup.lua'),
+                    os.path.join(filters_dir, 'minted-filter.lua'),
+                    cleanup_filter_path, symbol_filter_path, lua_filter_path,
+                ])
+                for f in latex_filters:
                     if os.path.exists(f):
                         cmd_tex.extend(['--lua-filter=' + f])
                 tex_result = subprocess.run(cmd_tex, check=True, capture_output=True, text=True, timeout=300)
