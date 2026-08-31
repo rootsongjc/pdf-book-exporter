@@ -104,7 +104,7 @@ def convert_webp_to_png(webp_path, output_dir, cache_dir=None):
         print(f"Warning: Could not convert {webp_path} to PNG. Install ImageMagick.")
         return None
 
-def process_images_in_content(content, book_dir, temp_dir, temp_pngs, current_file_path, cache_dir=None):
+def process_images_in_content(content, book_dir, temp_dir, temp_pngs, current_file_path, cache_dir=None, figure_placement='htbp'):
     os.makedirs(temp_dir, exist_ok=True)
     processed_images = {}
     
@@ -210,9 +210,9 @@ def process_images_in_content(content, book_dir, temp_dir, temp_pngs, current_fi
                 return match.group(0)
         if abs_path in processed_images:
             escaped_path = processed_images[abs_path]
-            latex = ('\n\\begin{figure}[htbp]\n' +
+            latex = (f'\n\\begin{{figure}}[{figure_placement}]\n' +
                 '  \\centering\n' +
-                f'  \\includegraphics[width=0.8\\textwidth]{{{escaped_path}}}\n' +
+                f'  \\includegraphics[width=0.8\\textwidth,height=0.85\\textheight,keepaspectratio]{{{escaped_path}}}\n' +
                 f'  \\caption{{{alt_text}}}\n' +
                 '\\end{figure}\n')
             return latex
@@ -247,9 +247,9 @@ def process_images_in_content(content, book_dir, temp_dir, temp_pngs, current_fi
             temp_pngs.append(target_path)
         escaped_path = latex_escape(target_path)
         processed_images[abs_path] = escaped_path
-        latex = ('\n\\begin{figure}[htbp]\n' +
+        latex = (f'\n\\begin{{figure}}[{figure_placement}]\n' +
             '  \\centering\n' +
-            f'  \\includegraphics[width=0.8\\textwidth]{{{escaped_path}}}\n' +
+            f'  \\includegraphics[width=0.8\\textwidth,height=0.85\\textheight,keepaspectratio]{{{escaped_path}}}\n' +
             f'  \\caption{{{alt_text}}}\n' +
             '\\end{figure}\n')
         return latex

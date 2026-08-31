@@ -396,6 +396,7 @@ jobs:
 ### Current Limitations
 
 - **Template Compatibility**: Custom templates (`--template`) only work with XeLaTeX engine
+- **Layout Packages**: Custom templates should load `float` and `needspace` to retain exact figure placement and heading-quote grouping; missing packages trigger compatible fallbacks
 - **Emoji Font Dependencies**: Emoji support requires system-installed emoji fonts (Apple Color Emoji, Noto Color Emoji, etc.)
 - **LaTeX Engine Switching**: The tool automatically selects between XeLaTeX and LuaLaTeX based on emoji requirements
 - **Table Width Processing**: Very wide tables may require manual adjustment of `--max-table-width` parameter
