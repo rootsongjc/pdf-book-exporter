@@ -121,8 +121,14 @@ def convert_inline_codes(body: str, chapter_dir: Path) -> str:
         if not path.exists():
             return ""
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-        start = int(named.get("lineStart", 1) or 1)
-        end = int(named.get("lineEnd", len(lines)) or len(lines))
+        try:
+            start = int(named.get("lineStart", 1) or 1)
+        except (TypeError, ValueError):
+            start = 1
+        try:
+            end = int(named.get("lineEnd", len(lines)) or len(lines))
+        except (TypeError, ValueError):
+            end = len(lines)
         snippet = "\n".join(lines[max(start - 1, 0) : end])
         lang = named.get("lang") or path.suffix.lstrip(".")
         title = named.get("title")

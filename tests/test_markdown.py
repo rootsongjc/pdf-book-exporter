@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pdf_book_exporter.markdown import (
     convert_callouts,
+    convert_inline_codes,
     convert_links,
     convert_tables,
     drop_shortcodes,
@@ -81,3 +82,12 @@ def test_preprocess_resolves_images_and_drops_missing(tmp_path: Path):
     assert "![好图](img/ok.svg)" in out
     assert "missing.png" not in out and "*坏图*" in out
     assert seen == ["ok.svg", "missing.png"]
+
+
+def test_inline_codes_non_numeric_line_range_falls_back_to_whole_file(tmp_path: Path):
+    code_file = tmp_path / "hello.py"
+    code_file.write_text("print(1)\nprint(2)\n", encoding="utf-8")
+    src = f'{{{{< inline-codes file="{code_file.name}" lineStart="abc" lineEnd="xyz" >}}}}'
+    out = convert_inline_codes(src, tmp_path)
+    assert "print(1)" in out
+    assert "print(2)" in out
