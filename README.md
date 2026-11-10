@@ -25,7 +25,7 @@ image conversion step.
 ## Install
 
 Requirements: Python ≥ 3.10, [Pandoc](https://pandoc.org) ≥ 3.1.7 and
-[Typst](https://typst.app) ≥ 0.13.
+[Typst](https://typst.app) ≥ 0.14.
 
 ```bash
 brew install pandoc typst            # macOS

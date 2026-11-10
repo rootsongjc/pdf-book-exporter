@@ -213,7 +213,7 @@ def build(book_dir: Path, opts: BuildOptions) -> Path:
         )
         # `#include` does not share the importing file's scope, so the body needs its own import.
         body_typ = workdir / "body.typ"
-        body_typ.write_text('#import "book.typ": part, appendix, appendix-heading-number, callout, taskbox\n' + body_typ.read_text(encoding="utf-8"), encoding="utf-8")
+        body_typ.write_text('#import "book.typ": part, appendix, appendix-heading-number, callout, taskbox, hrule\n' + body_typ.read_text(encoding="utf-8"), encoding="utf-8")
 
         output = opts.output.resolve()
         output.parent.mkdir(parents=True, exist_ok=True)

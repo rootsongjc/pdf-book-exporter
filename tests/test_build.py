@@ -39,3 +39,12 @@ def test_build_parts_and_appendix(parted_book: Path, tmp_path: Path):
     out = build(parted_book, BuildOptions(output=tmp_path / "demo.pdf", offline=True))
     titles = [o.title for o in pypdf.PdfReader(out).outline if hasattr(o, "title")]
     assert titles == ["1 前言", "Part I · 基础", "2 基础", "附录", "A 术语表"]
+
+
+@needs_tools
+def test_horizontal_rule_uses_template_function(parted_book: Path, tmp_path: Path):
+    (parted_book / "intro" / "index.md").write_text("---\ntitle: 前言\nweight: 1\n---\n\n上\n\n---\n\n下\n", encoding="utf-8")
+    workdir = tmp_path / "work"
+    out = build(parted_book, BuildOptions(output=tmp_path / "demo.pdf", offline=True, workdir=workdir))
+    assert "#hrule()" in (workdir / "body.typ").read_text(encoding="utf-8")
+    assert out.exists()

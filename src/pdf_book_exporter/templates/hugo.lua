@@ -79,6 +79,12 @@ function BulletList(list)
   end
 end
 
+-- Pandoc's raw Typst for `---` differs across versions (#horizontalrule, #divider()),
+-- so emit our own template function instead.
+function HorizontalRule()
+  return pandoc.RawBlock('typst', '#hrule()')
+end
+
 -- Hugo renders ```mermaid etc. client-side; in print we keep the source but mark the language.
 function CodeBlock(block)
   if block.classes[1] == 'mermaid' then

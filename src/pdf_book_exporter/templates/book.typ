@@ -72,6 +72,9 @@
   numbering(if appendix-mode.get() { "A-1" } else { "1-1" }, chapter, n)
 }
 
+// Thematic break (Markdown `---`), emitted by the Lua filter.
+#let hrule() = align(center, block(above: 1.4em, below: 1.4em, line(length: 30%, stroke: 0.5pt + rule-dark)))
+
 #let taskbox(checked) = box(
   baseline: 0.15em,
   width: 0.9em,

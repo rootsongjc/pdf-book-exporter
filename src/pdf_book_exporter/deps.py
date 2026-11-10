@@ -7,7 +7,7 @@ import shutil
 import subprocess
 
 MIN_PANDOC = (3, 1, 7)  # first release with a usable Typst writer
-MIN_TYPST = (0, 13, 0)  # outline.entry API used by the template
+MIN_TYPST = (0, 14, 0)  # WebP images and numbered PDF bookmarks
 
 
 def _version(cmd: list[str]) -> tuple[int, ...] | None:
