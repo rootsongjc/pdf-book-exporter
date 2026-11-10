@@ -1,656 +1,168 @@
-# PDF Book Exporter
+# pdf-book-exporter
 
-A comprehensive tool for exporting Hugo book directories to professional PDF files, with enhanced support for multilingual content, emoji rendering, and customizable styling.
+Export a [Hugo](https://gohugo.io) book — a directory of page bundles with YAML
+front matter — to a print-quality PDF.
 
-## ✨ Features
+The pipeline is deliberately short: **Markdown → Pandoc → Typst → PDF**. A
+1,000-page book compiles in well under ten seconds. No LaTeX, no browser, no
+image conversion step.
 
-- 📚 **Hugo Book Structure Support** - Automatically processes `_index.md` and `index.md` files with weight-based ordering
-- 🌍 **Multilingual Support** - CJK (Chinese, Japanese, Korean) character rendering with font auto-detection
-- 🎨 **Enhanced Cover System** - Dynamic text overlay on cover images with customizable fonts, colors, and positioning
-- 💻 **Advanced Code Highlighting** - Syntax highlighting for 20+ programming languages with customizable themes
-- 📊 **Smart Table Processing** - Auto-wrapping tables with enhanced formatting and break handling
-- 🎉 **Comprehensive Emoji Support** - Unicode emoji rendering with fallback font chains
-- 🎨 **Customizable Color Palettes** - Full typography and styling customization
-- ⚡ **Intelligent Caching** - Image processing cache with automatic invalidation
-- 🔧 **Flexible PDF Engines** - XeLaTeX and LuaLaTeX support with automatic engine selection
-- 📱 **Cross-Platform** - Works on macOS, Linux, and Windows
+- Chapters ordered by `weight`, nested sub-chapters, optional *parts* from the
+  book's `_index.md`, and an appendix part with `A`, `A.1`, `图 A-1` numbering
+- Hugo shortcodes mapped to print equivalents (`callout`, `table`, `figure`,
+  `details`, `inline-codes`, `youtube`/`bilibili`); web-only ones removed
+- SVG, PNG, JPEG, GIF and WebP images embedded natively; remote images
+  downloaded once and cached under `~/.cache/pdf-book-exporter/`
+- Cover and back-cover images (local file, URL, or discovered from the Hugo
+  site), optional title overlay, colophon page, table of contents with page
+  numbers, PDF outline, running headers
+- Syntax-highlighted code blocks (Typst built-in), zebra tables that break
+  across pages, callouts, task lists, footnotes, math
+- Chinese and English typography presets; colour emoji through system fonts
 
-## 🚀 Quick Start
+![Pages from the example book](example/example-screenshot.jpg)
 
-### Prerequisites
+## Install
 
-```bash
-# Install Pandoc (required)
-# macOS
-brew install pandoc
-
-# Ubuntu/Debian
-sudo apt-get install pandoc
-
-# Windows
-# Download from https://pandoc.org/installing.html
-
-# Install LaTeX distribution (TeX Live recommended)
-# macOS
-brew install --cask mactex
-
-# Ubuntu/Debian
-sudo apt-get install texlive-full
-
-# Windows
-# Download TeX Live or MiKTeX
-```
-
-### Basic Usage
+Requirements: Python ≥ 3.10, [Pandoc](https://pandoc.org) ≥ 3.1.7 and
+[Typst](https://typst.app) ≥ 0.13.
 
 ```bash
-# Export a Hugo book to PDF
-python cli.py /path/to/book/directory -o output.pdf
-
-# Generate with cover and summary
-python cli.py /path/to/book/directory \
-    -o professional-book.pdf \
-    --generate-summary
-
-# Enable emoji support with automatic engine optimization
-python cli.py /path/to/book/directory \
-    -o emoji-book.pdf \
-    --emoji
+brew install pandoc typst            # macOS
+uv tool install git+https://github.com/rootsongjc/pdf-book-exporter
+pdf-book-exporter --check
 ```
 
-## 📖 Examples
+Fonts: the Chinese preset looks for *Noto Sans CJK SC* (or *Source Han Sans*,
+*PingFang SC*), the English preset for *Noto Sans*; code uses *JetBrains
+Mono* or *Menlo*. Typst falls back per glyph, so missing families only produce
+a warning. Override with `--font` / `--monofont` or `book.font` in front
+matter, and point Typst at extra font directories with `--font-path`.
 
-You can export the built-in example book to PDF with the following command:
+## Usage
 
 ```bash
-python cli.py example -o example.pdf --emoji
+pdf-book-exporter content/zh/book/my-book                    # -> ./my-book-zh.pdf
+pdf-book-exporter content/en/book/my-book -o dist/book.pdf
+pdf-book-exporter content/zh/book/my-book --cover cover.jpg --backcover back.jpg
+pdf-book-exporter content/zh/book/my-book --keep -v           # keep body.md / body.typ for debugging
 ```
 
-![Example Screenshot](example-screenshot.jpg)
+| Flag | Purpose |
+|------|---------|
+| `-o, --output` | Output path (default `./<book>-<lang>.pdf`) |
+| `--cover`, `--backcover` | Image path or URL; overrides front matter and site lookup |
+| `--no-cover` | Skip the cover even if one is found |
+| `--font`, `--monofont` | Comma-separated font families, in fallback order |
+| `--font-path DIR` | Extra font directory for Typst (repeatable) |
+| `--include-drafts` | Include pages with `draft: true` |
+| `--offline` | Never download; use cached remote images only |
+| `--keep`, `--workdir DIR` | Keep the intermediate Markdown and Typst files |
+| `--check` | Verify that pandoc and typst are installed |
 
-### Example 1: Basic Book Export
+## Book layout
 
-```bash
-# Directory structure
-content/zh/book/my-handbook/
-├── _index.md          # Book metadata and config
-├── chapter1/
-│   └── index.md       # Chapter 1 content
-├── chapter2/
-│   └── index.md       # Chapter 2 content
-└── images/
-    └── cover.jpg      # Optional cover image
-
-# Export command
-python cli.py content/zh/book/my-handbook \
-    -o static/files/my-handbook.pdf \
-    --generate-summary
+```text
+my-book/
+├── _index.md            # book metadata (title, authors, parts, book: {...})
+├── cover.jpg            # optional, referenced from book.cover
+├── chapter-a/
+│   └── index.md         # title, weight, part_id, draft, export_pdf
+└── chapter-b/
+    ├── _index.md        # chapter intro
+    └── section/
+        └── index.md     # sub-chapter (one level of nesting)
 ```
 
-### Example 2: Emoji-Enabled Technical Documentation
+Pages with `draft: true` (unless `--include-drafts`), `export_pdf: false`
+or `status: offline` are skipped. Headings inside a page are re-levelled so
+the smallest one sits directly under the chapter title; Hugo's "start at
+`##`" convention therefore needs no special handling.
 
-```bash
-# Export with emoji support and diagnostics
-python cli.py content/zh/book/tech-guide \
-    -o tech-guide-with-emoji.pdf \
-    --emoji \
-    --diagnostics
+### Cover lookup
 
-# Example output
-✅ Emoji fonts detected: Apple Color Emoji, Noto Color Emoji
-🎨 Using emoji font: Apple Color Emoji
-🚀 PDF generated successfully at tech-guide-with-emoji.pdf
-```
+The first match wins:
 
-### Example 3: Custom Template and Appendix
+1. `--cover` on the command line
+2. `book.cover` (or top-level `cover`) in `_index.md` — a path relative to the
+   book directory or an `http(s)` URL
+3. `cover-<lang>.{webp,jpg,jpeg,png}` or `cover.*` inside the book directory
+4. In a Hugo site (a parent directory with `hugo.toml`/`config/` and
+   `content/`): `static/images/book-covers/<slug>.webp`, then the URL under
+   `<slug>` in `data/<lang>/book_covers.yaml`
 
-```bash
-# Use custom template with appendix
-python cli.py content/zh/book/research-paper \
-    -o research-paper.pdf \
-    --template custom-template.tex \
-    --appendix bibliography.md
-```
+Generated covers usually already carry the title, so the text overlay is off
+unless `cover_overlay_enabled: true` is set. Back covers follow the same rules
+with `backcover*` / `back-cover*` names (no site lookup).
 
-### Example 4: Draft Content and Cache Management
+### `_index.md` front matter
 
-```bash
-# Include draft content
-python cli.py content/zh/book/work-in-progress \
-    -o draft-book.pdf \
-    --include-drafts
-
-# Manage cache
-python cli.py --cache-info content/zh/book/my-book
-python cli.py --clean-cache 30 content/zh/book/my-book
-```
-
-## 🎨 Customizable Palettes and Styling
-
-### Color Palette Configuration
-
-Configure document-wide color schemes in your book's `_index.md`:
+Top-level Hugo fields are used as-is; the optional `book:` block overrides them
+and carries PDF-only settings.
 
 ```yaml
----
-title: "My Professional Book"
+title: AI 原生基础设施
+authors: [Jimmy Song]
+publisher: jimmysong.io
+description: 一段用于版权页的简介
+parts:
+  - { id: part-i, title: "Part I · 定义", order: 1 }
+  - { id: part-appendix, title: 附录，order: 2 }   # id/title matching appendix|附录 → A, B, ...
 book:
-  # Typography color palette
-  body_color: "#2C3E50"        # Main text color
-  heading_color: "#34495E"     # All heading levels
-  link_color: "#3498DB"        # Hyperlinks and references
-  code_color: "#E74C3C"        # Inline code snippets
-  quote_color: "#7F8C8D"       # Blockquotes and citations
-  caption_color: "#95A5A6"     # Figure and table captions
-
-  # Enhanced cover customization
-  cover: "professional-cover.jpg"
-  cover_title_text: "Advanced Data Science"
-  cover_author_text: "Dr. Jane Smith"
-  cover_subtitle_text: "A Comprehensive Guide"
-  
-  # Cover color scheme
+  language: zh-hans            # inferred from the path (/zh/, /en/) when omitted
+  website: https://jimmysong.io/book/ai-native-infra
+  cover: cover.jpg             # path relative to the book directory, or a URL
+  backcover: back-cover.jpg
+  cover_title_text: 封面标题    # defaults to title
+  cover_subtitle_text: 副标题
+  cover_author_text: 作者
   cover_title_color: "#FFFFFF"
-  cover_author_color: "#ECF0F1"
-  cover_subtitle_color: "#BDC3C7"
-  
-  # Font sizes (points)
-  cover_title_font_size: 48
-  cover_author_font_size: 24
-  cover_subtitle_font_size: 18
-  
-  # Layout positioning
-  cover_title_position: "center"    # top, center, bottom
-  cover_author_position: "bottom"   # top, center, bottom
----
+  cover_title_font_size: 40
+  cover_title_position: center # top | center | bottom
+  cover_author_position: bottom
+  cover_overlay_enabled: true  # default false: image only
+  show_chapter_prefix: true    # 第 1 章 / Chapter 1 above chapter titles
+  show_section_numbers: true   # 1.1, 1.2 ...
+  show_toc_numbers: true
+  show_figure_numbers: true    # 图 1-1 / Figure 1-1
+  toc_depth: 2
+  papersize: a4                # or us-letter
+  font: "Noto Sans CJK SC, Noto Sans"
+  monofont: "JetBrains Mono, Menlo"
 ```
 
-### Predefined Color Themes
+### Shortcode mapping
 
-#### Professional Theme
+| Hugo | PDF |
+|------|-----|
+| `{{< callout note "标题" >}}…{{< /callout >}}` | Tinted callout block (`note`, `tip`, `warning`, `caution`, `info`, `important`) |
+| `{{< table title="…" >}}…{{< /table >}}` | Table with caption, numbered 表 1-1 |
+| `{{< figure src=… caption=… >}}` | Figure with caption |
+| `{{< details "标题" >}}…{{< /details >}}` | Bold title + content |
+| `{{< inline-codes file=… lang=… >}}` | Fenced code block from the file |
+| `{{< youtube ID >}}`, `{{< bilibili ID >}}` | Link to the video |
+| `section-toc`, `quiz`, `cta`, `markmap`, `whimsical`, `podcast`, slides | Removed |
+| Any other paired shortcode | Tags removed, inner content kept |
 
-```yaml
-book:
-  body_color: "#2C3E50"
-  heading_color: "#34495E" 
-  link_color: "#3498DB"
-  code_color: "#E74C3C"
-  quote_color: "#7F8C8D"
-```
+Internal links (`{{< relref >}}` and relative paths) become plain text; external
+links stay clickable.
 
-#### Academic Theme
-
-```yaml
-book:
-  body_color: "#2E3440"
-  heading_color: "#5E81AC"
-  link_color: "#88C0D0"
-  code_color: "#BF616A"
-  quote_color: "#4C566A"
-```
-
-#### Warm Theme
-
-```yaml
-book:
-  body_color: "#3E2723"
-  heading_color: "#5D4037"
-  link_color: "#FF5722"
-  code_color: "#D84315"
-  quote_color: "#6D4C41"
-```
-
-### Advanced Cover Customization
-
-```yaml
-book:
-  # Visual effects
-  cover_overlay_enabled: true
-  cover_text_shadow: true
-  cover_background_overlay: true
-  cover_overlay_opacity: 0.6
-
-  # Advanced positioning
-  cover_title_position: "center"
-  cover_author_position: "bottom"
-  
-  # Custom export date format
-  cover_export_date: "2024 年 1 月"
-```
-
-### Code Block Styling
-
-The tool automatically applies syntax highlighting with customizable color schemes:
-
-```markdown
-```python
-def hello_world():
-    print("Hello, World! 🌍")
-    return {"status": "success", "emoji": "✅"}
-```
-
-# SQL example with automatic highlighting
-
-```sql
-SELECT user_name, COUNT(*) as total_orders 
-FROM orders 
-WHERE created_date >= '2024-01-01'
-GROUP BY user_name;
-```
-
-```
-
-Supported languages: Python, JavaScript, Go, Rust, Java, C++, SQL, YAML, JSON, Bash, HTML, CSS, and more.
-
-## 🔧 API Reference
-
-### Core Functions
-
-#### `build_pdf(book_dir, root_node, output_pdf, metadata, **options)`
-
-Main PDF generation function.
-
-**Parameters:**
-- `book_dir` (str): Path to Hugo book directory
-- `root_node` (Node): Parsed book structure tree
-- `output_pdf` (str): Output PDF file path
-- `metadata` (dict): Book configuration and metadata
-- `template_path` (str, optional): Custom LaTeX template path
-- `appendix_path` (str, optional): Additional content to append
-- `emoji` (bool): Enable comprehensive emoji support
-
-**Example:**
-```python
-from export_book_pdf import build_pdf, build_tree, load_config
-
-# Parse book structure
-root_node = build_tree("content/zh/book/my-book")
-config = load_config("content/zh/book/my-book")
-
-# Generate PDF
-build_pdf(
-    book_dir="content/zh/book/my-book",
-    root_node=root_node,
-    output_pdf="output.pdf",
-    metadata=config,
-    emoji=True
-)
-```
-
-## 🛠️ CLI Reference
-
-### Basic Commands
+## Development
 
 ```bash
-# Core export command
-python cli.py <book_directory> [OPTIONS]
+uv sync
+uv run pytest
+uv run pdf-book-exporter example -o example.pdf
 ```
 
-### Command Line Options
+`src/pdf_book_exporter/templates/book.typ` holds the whole visual design
+(fonts, colours, page furniture, callouts, figures, tables). `hugo.lua` is the
+only Pandoc filter. `markdown.py` does the Hugo-specific text rewriting before
+Pandoc runs.
 
-| Flag | Description | Example |
-|------|-------------|---------|
-| `-o, --output` | Output PDF file path | `-o my-book.pdf` |
-| `--generate-summary` | Create GitBook-style summary.md | `--generate-summary` |
-| `--template` | Custom LaTeX template path (XeLaTeX only) | `--template custom.tex` |
-| `--appendix` | Append additional content | `--appendix refs.md` |
-| `--emoji` | Enable emoji support with automatic engine selection | `--emoji` |
-| `--include-drafts` | Include draft content | `--include-drafts` |
-| `--diagnostics` | Run system compatibility diagnostics | `--diagnostics` |
-| `--clean-cache` | Clean cache files (optional: days) | `--clean-cache 30` |
-| `--cache-info` | Display cache information | `--cache-info` |
-| `--generate-troubleshooting-guide` | Generate troubleshooting guide | `--generate-troubleshooting-guide` |
-| `--max-table-width` | Maximum table width as fraction of text width | `--max-table-width 0.95` |
+The previous Pandoc + LaTeX implementation is preserved on the `legacy/v1`
+branch and the `v1.0.0` tag.
 
-### Advanced Usage Examples
+## License
 
-#### Comprehensive Diagnostics
-
-```bash
-# Run full system diagnostics
-python cli.py --diagnostics
-# Output:
-# 🔍 System validation: ✅ PASSED
-#    ✅ LuaLaTeX Engine
-#    ✅ Emoji Fonts (Apple Color Emoji)
-#    ✅ Pandoc Available
-#    ✅ Required LaTeX Packages
-```
-
-#### Cache Management
-
-```bash
-# View cache statistics
-python cli.py --cache-info content/zh/book/handbook
-# Output:
-# Cache directory: /path/to/cache
-# Cache files: 15
-# Total cache size: 12.34MB
-
-# Clean old cache files
-python cli.py --clean-cache 30 content/zh/book/handbook
-# Output: Cleaned 8 cache files older than 30 days.
-```
-
-#### Draft Content Processing
-
-```bash
-# Include draft chapters (with draft: true in front matter)
-python cli.py content/zh/book/work-in-progress \
-    -o draft-version.pdf \
-    --include-drafts
-```
-
-## 📄 Workflow Integration
-
-### Hugo Integration
-
-The tool seamlessly integrates with Hugo book themes:
-
-```yaml
-# hugo.yaml or config.yaml
-params:
-  book:
-    pdf_export: true
-    pdf_output_dir: "static/files"
-```
-
-### Automated Build Integration
-
-#### GitHub Actions
-
-```yaml
-name: Generate PDF Books
-on:
-  push:
-    paths: ['content/zh/book/**']
-
-jobs:
-  pdf-export:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install LaTeX
-        run: sudo apt-get install texlive-full
-        
-      - name: Install Pandoc
-        run: sudo apt-get install pandoc
-        
-      - name: Generate PDF
-        run: |
-          python tools/pdf-book-exporter/cli.py \
-            content/zh/book/my-handbook \
-            -o static/files/my-handbook.pdf \
-            --emoji --generate-summary
-            
-      - name: Upload PDF
-        uses: actions/upload-artifact@v3
-        with:
-          name: generated-pdfs
-          path: static/files/*.pdf
-```
-
-## ⚠️ Known Limitations
-
-### Current Limitations
-
-- **Template Compatibility**: Custom templates (`--template`) only work with XeLaTeX engine
-- **Layout Packages**: Custom templates should load `float` and `needspace` to retain exact figure placement and heading-quote grouping; missing packages trigger compatible fallbacks
-- **Emoji Font Dependencies**: Emoji support requires system-installed emoji fonts (Apple Color Emoji, Noto Color Emoji, etc.)
-- **LaTeX Engine Switching**: The tool automatically selects between XeLaTeX and LuaLaTeX based on emoji requirements
-- **Table Width Processing**: Very wide tables may require manual adjustment of `--max-table-width` parameter
-- **Image Format Support**: WebP images are automatically converted to PNG, which may increase processing time
-- **Cache Dependencies**: Image processing cache is tied to file modification times and may require manual clearing after system changes
-
-### Performance Considerations
-
-- **Large Books**: Processing time increases significantly for books with 200+ pages
-- **Image-Heavy Content**: Books with many images may require substantial cache space
-- **Font Loading**: First-time emoji font detection adds ~2-3 seconds to processing time
-- **Memory Usage**: Large tables and complex formatting may require 2GB+ RAM
-
-### Compatibility Notes
-
-- **Operating Systems**: Full emoji support requires macOS 10.12+, Ubuntu 18.04+, or Windows 10+
-- **LaTeX Distributions**: TeX Live 2020+ recommended for best compatibility
-- **Pandoc Version**: Requires Pandoc 2.14+ for optimal table processing
-
-## 📋 Content Guidelines
-
-### Book Structure
-
-```
-content/zh/book/my-handbook/
-├── _index.md              # Required: Book metadata
-├── chapter1-introduction/
-│   └── index.md          # Chapter content
-├── chapter2-basics/
-│   └── index.md
-├── chapter3-advanced/
-│   ├── index.md
-│   └── images/           # Chapter-specific images
-│       └── diagram.png
-├── images/               # Book-level images
-│   ├── cover.jpg        # Optional: Book cover
-│   └── backcover.jpg    # Optional: Back cover
-└── SUMMARY.md           # Generated automatically
-```
-
-### Front Matter Configuration
-
-#### Book-level (`_index.md`)
-
-```yaml
----
-title: "Complete Programming Guide"
-weight: 1
-book:
-  title: "Complete Programming Guide"
-  author: "Jane Developer"
-  date: "2024-01-15"
-  description: "A comprehensive guide to modern programming"
-  language: "zh-hans"
-  
-  # PDF-specific settings
-  cover: "cover.jpg"
-  appendix: true
-  
-  # Back-cover configuration (optional)
-  backcover_image: "back_qr.png"   # relative path, any raster img
-  backcover_text: |
-    **扫码关注公众号**  
-    https://my.site/book
-  
-  # Color customization
-  body_color: "#2C3E50"
-  heading_color: "#34495E"
-  link_color: "#3498DB"
-  
-  # Cover customization
-  cover_title_text: "完整编程指南"
-  cover_author_text: "张三"
-  cover_title_color: "#FFFFFF"
-  cover_author_color: "#ECF0F1"
----
-
-# Introduction
-
-This book covers comprehensive programming concepts...
-```
-
-#### Chapter-level (`index.md`)
-
-```yaml
----
-title: "Getting Started"
-weight: 10
-draft: false           # Set to true to exclude from PDF
-publish: true          # Set to false to exclude from PDF  
-export_pdf: true       # Set to false to exclude from PDF
----
-
-# Getting Started
-
-Welcome to the first chapter...
-```
-
-### Content Exclusion
-
-Control which content appears in PDF exports:
-
-```yaml
----
-title: "Work in Progress Chapter"
-weight: 99
-draft: true          # Excluded unless --include-drafts
-publish: false       # Always excluded
-export_pdf: false    # Excluded from PDF only
-pdf: false          # Alternative to export_pdf
----
-```
-
-## 🎯 Advanced Features
-
-### Multi-Language Support
-
-```yaml
-book:
-  language: "zh-hans"    # Chinese Simplified
-  # Automatic font selection:
-  # - Source Han Sans SC (preferred)
-  # - Noto Sans CJK SC
-  # - PingFang SC (macOS)
-```
-
-### Emoji Rendering
-
-```bash
-# Enable comprehensive emoji support
-python cli.py content/book/emoji-guide \
-    -o emoji-guide.pdf \
-    --emoji
-
-# The tool automatically:
-# ✅ Detects system emoji fonts
-# 🎨 Configures optimal rendering engine
-# 🚀 Provides fallback options
-```
-
-### Image Processing
-
-The tool automatically handles:
-
-- **Format conversion**: WebP → PNG, SVG → PNG
-- **Remote images**: Downloads and caches URLs
-- **Smart caching**: Avoids reprocessing unchanged images
-- **Size optimization**: Maintains quality while reducing file size
-
-### Table Enhancement
-
-Advanced table processing includes:
-
-- **Auto-wrapping**: Long content automatically wraps
-- **Responsive sizing**: Tables adapt to page width
-- **Break handling**: Smart page breaks for long tables
-- **Styling**: Professional borders and spacing
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-#### 1. LaTeX Engine Not Found
-
-```bash
-# Check if LaTeX is installed
-xelatex --version
-lualatex --version
-
-# Install TeX Live (recommended)
-# macOS: brew install --cask mactex  
-# Ubuntu: sudo apt-get install texlive-full
-```
-
-#### 2. Emoji Not Rendering
-
-```bash
-# Run diagnostics to identify issues
-python cli.py --diagnostics
-
-# Install emoji fonts if needed
-# macOS: Already included (Apple Color Emoji)
-# Ubuntu: sudo apt-get install fonts-noto-color-emoji
-# Windows: Available in Windows 10+
-```
-
-#### 3. Chinese Characters Not Displaying
-
-```bash
-# Install CJK fonts
-# macOS: brew install font-source-han-sans
-# Ubuntu: sudo apt-get install fonts-noto-cjk
-```
-
-#### 4. Memory Issues with Large Books
-
-```bash
-# Process in smaller chunks or increase system memory
-# Use cache to avoid reprocessing images
-python cli.py --clean-cache 0  # Clear cache if needed
-```
-
-### Getting Help
-
-1. **Run diagnostics**: `python cli.py --diagnostics`
-2. **Generate troubleshooting guide**: `--generate-troubleshooting-guide`
-3. **Check logs**: Enable verbose output in the script
-4. **Community support**: Create an issue with diagnostic output
-
-## 📊 Performance and Statistics
-
-### Example Performance Metrics
-
-```bash
-# Typical processing times
-Small book (5 chapters, 20 pages):   ~15 seconds
-Medium book (15 chapters, 100 pages): ~45 seconds  
-Large book (30 chapters, 300 pages):  ~2 minutes
-
-# With caching enabled:
-Subsequent runs: ~5-10 seconds (cache hit rate: 85%+)
-```
-
-### Cache Management
-
-```bash
-# Monitor cache usage
-python cli.py --cache-info content/book/handbook
-# Output:
-# Cache directory: /path/to/cache
-# Cache files: 25
-# image1_a1b2c3d4.png: 125.3KB, 2.5 days old
-# image2_e5f6g7h8.png: 89.7KB, 1.2 days old
-# Total cache size: 15.67MB
-
-# Clean old cache files
-python cli.py --clean-cache 7  # Remove files older than 7 days
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
-
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/rootsongjc/pdf-book-exporter.git
-cd pdf-book-exporter
-
-# Install dependencies
-./install_pdf_dependencies.sh
-```
-
----
-
-**Professional PDF generation for Hugo books with comprehensive multilingual and emoji support.**
+Apache-2.0

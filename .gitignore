@@ -1,6 +1,9 @@
-.vscode
-example/image-caches/
 __pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
 .pytest_cache/
-.ipynb_checkpoints/
+*.pdf
 .DS_Store
