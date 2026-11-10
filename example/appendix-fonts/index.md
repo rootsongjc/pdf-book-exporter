@@ -1,16 +1,26 @@
 ---
-title: SourceHanMono 字体测试
-weight: 40
+title: 字体与等宽字符
+weight: 100
+part_id: part-appendix
 ---
 
-本文档用于验证 SourceHanMono 字体在代码块中的应用效果。
+附录中的章节编号为 A、B……，小节为 A.1、A.2，图表为「图 A-1」。本附录检查代码块中的 CJK 字符：等宽字体通常不含汉字，Typst 会按字体回退链补齐（默认 JetBrains Mono → Menlo → … → Noto Sans Mono CJK SC），中文字符应与 ASCII 字符基线对齐。
+
+## 字体回退链
+
+| 用途 | 中文预设 | 英文预设 |
+|------|----------|----------|
+| 正文 | Noto Sans CJK SC → Source Han Sans SC → PingFang SC → Microsoft YaHei → Noto Sans | Noto Sans → Helvetica Neue → Arial → Noto Sans CJK SC |
+| 代码 | JetBrains Mono → Menlo → DejaVu Sans Mono → Consolas → Noto Sans Mono CJK SC | 同左 |
+
+未安装的字体会在编译前被剔除，因此不会产生警告；用 `--font` / `--monofont` 或 `book.font` 可以完全覆盖预设。
 
 ## Python 代码示例
 
 ```python
 def hello_world():
     """
-    一个简单的函数，展示 SourceHanMono 字体效果
+    一个简单的函数，展示等宽字体中的 CJK 回退效果
     """
     print("Hello, 世界！")  # 中文注释
     print("こんにちは、世界！")  # 日文注释
@@ -62,7 +72,7 @@ function 显示问候(名字) {
 显示问候("张三");
 ```
 
-## 内联代码测试
+## 内联代码
 
 以下是内联代码的测试：
 
@@ -71,7 +81,7 @@ function 显示问候(名字) {
 - 命令示例：`ls -la 中文目录`
 - 混合内容：`hello世界test`
 
-## 等宽字符对齐测试
+## 等宽字符对齐
 
 ```
 ASCII字符:  ABCDEFGHIJKLMNOPQRSTUVWXYZ
@@ -81,7 +91,7 @@ ASCII字符:  ABCDEFGHIJKLMNOPQRSTUVWXYZ
 混合内容:   Test测试テストテスト
 ```
 
-## 代码注释多语言测试
+## 多语言注释
 
 ```go
 package main
@@ -101,5 +111,3 @@ func main() {
     fmt.Println("안녕하세요, 세계!")   // 韩文
 }
 ```
-
-此文档将帮助验证 SourceHanMono 字体是否正确应用于所有代码块和内联代码。

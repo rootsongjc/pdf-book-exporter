@@ -3,7 +3,16 @@ from pathlib import Path
 
 import pytest
 
-from pdf_book_exporter.build import BuildOptions, build, render_markdown
+from pdf_book_exporter.build import (
+    BODY_FONTS,
+    MONO_FONTS,
+    BuildOptions,
+    _warn_missing_cjk_font,
+    build,
+    render_main_typ,
+    render_markdown,
+    resolve_fonts,
+)
 from pdf_book_exporter.assets import Assets
 from pdf_book_exporter.book import load_book
 
@@ -29,8 +38,9 @@ def test_build_example_pdf(example_book: Path, tmp_path: Path):
     reader = pypdf.PdfReader(out)
     assert len(reader.pages) > 10
     titles = [o.title for o in reader.outline if hasattr(o, "title")]
-    assert titles[0] == "1 说明"
-    assert reader.metadata.title == "PDF 导出功能完整测试"
+    assert titles[:3] == ["1 前言", "第一部分 · 基础排版", "2 基础格式"]
+    assert "A 字体与等宽字符" in titles
+    assert reader.metadata.title == "PDF Book Exporter 示例"
 
 
 @needs_tools
@@ -48,3 +58,52 @@ def test_horizontal_rule_uses_template_function(parted_book: Path, tmp_path: Pat
     out = build(parted_book, BuildOptions(output=tmp_path / "demo.pdf", offline=True, workdir=workdir))
     assert "#hrule()" in (workdir / "body.typ").read_text(encoding="utf-8")
     assert out.exists()
+
+
+def test_preset_fonts_are_reduced_to_installed_families():
+    installed = {"pingfang sc", "menlo", "noto sans mono cjk sc"}
+    assert resolve_fonts(None, BODY_FONTS["zh"], installed) == ["PingFang SC"]
+    assert resolve_fonts(None, MONO_FONTS, installed) == ["Menlo", "Noto Sans Mono CJK SC"]
+    # nothing usable, or fonts could not be listed: keep the chain so Typst still reports it
+    assert resolve_fonts(None, MONO_FONTS, set()) == list(MONO_FONTS)
+    assert resolve_fonts(None, MONO_FONTS, None) == list(MONO_FONTS)
+
+
+def test_requested_fonts_are_passed_through_unfiltered():
+    assert resolve_fonts("Foo Sans, Menlo", MONO_FONTS, {"menlo"}) == ["Foo Sans", "Menlo"]
+
+
+def test_main_typ_lists_only_installed_preset_fonts(parted_book: Path, tmp_path: Path):
+    book = load_book(parted_book)
+    installed = {"source han sans sc", "menlo"}
+    typ = render_main_typ(book, BuildOptions(output=tmp_path / "x.pdf"), None, None, installed)
+    assert 'font: ("Source Han Sans SC",),' in typ
+    assert 'monofont: ("Menlo",),' in typ
+    typ = render_main_typ(book, BuildOptions(output=tmp_path / "x.pdf", font="My Font"), None, None, installed)
+    assert 'font: ("My Font",),' in typ
+
+
+def test_warns_once_when_no_chinese_font_is_installed(parted_book: Path, tmp_path: Path, capsys):
+    book = load_book(parted_book)
+    _warn_missing_cjk_font(book, BuildOptions(output=tmp_path / "x.pdf"), {"noto sans", "menlo"})
+    assert "no Chinese font installed" in capsys.readouterr().err
+    _warn_missing_cjk_font(book, BuildOptions(output=tmp_path / "x.pdf"), {"pingfang sc"})
+    _warn_missing_cjk_font(book, BuildOptions(output=tmp_path / "x.pdf", font="My Font"), {"noto sans"})
+    assert capsys.readouterr().err == ""
+
+
+@needs_tools
+def test_strong_text_is_bold_not_black(parted_book: Path, tmp_path: Path):
+    pypdf = pytest.importorskip("pypdf")
+    (parted_book / "intro" / "index.md").write_text(
+        "---\ntitle: 前言 **重点**\nweight: 1\n---\n\n正文 **行内加粗** 文字\n\n| **表头** |\n| --- |\n| 内容 |\n",
+        encoding="utf-8",
+    )
+    out = build(parted_book, BuildOptions(output=tmp_path / "demo.pdf", offline=True))
+    fonts = {
+        str(font.get_object().get("/BaseFont", ""))
+        for page in pypdf.PdfReader(out).pages
+        for font in page.get("/Resources", {}).get("/Font", {}).values()
+    }
+    # strong adds a weight delta; stacked on an explicit 700 it used to select the Black face
+    assert fonts and not [name for name in fonts if "Black" in name or "Heavy" in name], fonts

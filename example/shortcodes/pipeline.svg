@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="200" viewBox="0 0 880 200" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+  <g font-size="18" text-anchor="middle">
+    <rect x="20" y="60" width="180" height="80" rx="12" fill="#eef4ff" stroke="#0a84ff" stroke-width="2"/>
+    <text x="110" y="94" fill="#1d1d1f" font-weight="bold">Hugo book</text>
+    <text x="110" y="120" fill="#6b7280" font-size="14">page bundles + YAML</text>
+
+    <rect x="240" y="60" width="180" height="80" rx="12" fill="#ffffff" stroke="#c7cdd6" stroke-width="2"/>
+    <text x="330" y="94" fill="#1d1d1f" font-weight="bold">markdown.py</text>
+    <text x="330" y="120" fill="#6b7280" font-size="14">shortcodes → divs</text>
+
+    <rect x="460" y="60" width="180" height="80" rx="12" fill="#ffffff" stroke="#c7cdd6" stroke-width="2"/>
+    <text x="550" y="94" fill="#1d1d1f" font-weight="bold">Pandoc + hugo.lua</text>
+    <text x="550" y="120" fill="#6b7280" font-size="14">commonmark_x → typst</text>
+
+    <rect x="680" y="60" width="180" height="80" rx="12" fill="#eef4ff" stroke="#0a84ff" stroke-width="2"/>
+    <text x="770" y="94" fill="#1d1d1f" font-weight="bold">Typst</text>
+    <text x="770" y="120" fill="#6b7280" font-size="14">book.typ → PDF</text>
+  </g>
+  <g stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="200" y1="100" x2="238" y2="100"/>
+    <line x1="420" y1="100" x2="458" y2="100"/>
+    <line x1="640" y1="100" x2="678" y2="100"/>
+  </g>
+</svg>

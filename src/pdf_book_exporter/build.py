@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -49,11 +50,51 @@ def typ_bool(value: bool) -> str:
     return "true" if value else "false"
 
 
-def typ_font_list(value: str | None) -> str:
-    if not value:
+def typ_font_list(names: Sequence[str]) -> str:
+    if not names:
         return "()"
-    names = [n.strip() for n in value.split(",") if n.strip()]
     return "(" + ", ".join(typ_str(n) for n in names) + ("," if len(names) == 1 else "") + ")"
+
+
+# Preset fallback chains live here rather than in the template so that families Typst
+# cannot find are dropped before compiling: Typst warns once per missing family in a
+# chain even when an earlier family is the one actually used.
+ZH_BODY_FONTS = ("Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei")
+BODY_FONTS = {
+    "zh": (*ZH_BODY_FONTS, "Noto Sans"),
+    "default": ("Noto Sans", "Helvetica Neue", "Arial", "Noto Sans CJK SC"),
+}
+MONO_FONTS = ("JetBrains Mono", "Menlo", "DejaVu Sans Mono", "Consolas", "Noto Sans Mono CJK SC")
+
+
+def installed_fonts(font_paths: Sequence[Path] | None = None) -> set[str] | None:
+    """Casefolded family names Typst can see, or None when they cannot be listed."""
+    cmd = ["typst", "fonts"]
+    for fp in font_paths or []:
+        cmd += ["--font-path", str(fp)]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return {line.strip().casefold() for line in result.stdout.splitlines() if line.strip()}
+
+
+def resolve_fonts(requested: str | None, preset: Sequence[str], installed: set[str] | None) -> list[str]:
+    """Font chain for the template.
+
+    Families requested by the user are passed through untouched, so Typst still reports
+    one that is missing. A preset is reduced to its installed families; if none of them
+    is installed (or the fonts could not be listed) the whole chain is kept so the
+    problem stays visible.
+    """
+    names = [n.strip() for n in (requested or "").split(",") if n.strip()]
+    if names:
+        return names
+    if installed is None:
+        return list(preset)
+    return [n for n in preset if n.casefold() in installed] or list(preset)
 
 
 def _chapter_markdown(chapter: Chapter, level: int, assets: Assets, lang: str) -> str:
@@ -94,10 +135,18 @@ def render_markdown(book: Book, assets: Assets) -> str:
     return "\n\n".join(chunks) + "\n"
 
 
-def render_main_typ(book: Book, opts: BuildOptions, cover: str | None, backcover: str | None) -> str:
+def render_main_typ(
+    book: Book,
+    opts: BuildOptions,
+    cover: str | None,
+    backcover: str | None,
+    installed: set[str] | None = None,
+) -> str:
     cfg = book.config
     lang = "zh" if cfg.language.startswith("zh") else cfg.language.split("-")[0]
     region = "cn" if lang == "zh" else ("us" if lang == "en" else "")
+    body_fonts = resolve_fonts(opts.font or cfg.font, BODY_FONTS["zh" if lang == "zh" else "default"], installed)
+    mono_fonts = resolve_fonts(opts.monofont or cfg.monofont, MONO_FONTS, installed)
     ct = cfg.cover_text
     cover_text = (
         "(\n"
@@ -137,8 +186,8 @@ def render_main_typ(book: Book, opts: BuildOptions, cover: str | None, backcover
   show-figure-numbers: {typ_bool(cfg.show_figure_numbers)},
   toc-depth: {cfg.toc_depth},
   paper: {typ_str(cfg.papersize)},
-  font: {typ_font_list(opts.font or cfg.font)},
-  monofont: {typ_font_list(opts.monofont or cfg.monofont)},
+  font: {typ_font_list(body_fonts)},
+  monofont: {typ_font_list(mono_fonts)},
 )
 #include "body.typ"
 """
@@ -169,6 +218,20 @@ def _print_typst_diagnostics(stderr: str) -> None:
             print(block.strip(), file=sys.stderr)
 
 
+def _warn_missing_cjk_font(book: Book, opts: BuildOptions, installed: set[str] | None) -> None:
+    # Dropping uninstalled preset families also drops Typst's hint that no Chinese font
+    # exists, and the PDF would silently render missing glyphs. Say so explicitly.
+    cfg = book.config
+    if installed is None or not cfg.language.startswith("zh") or opts.font or cfg.font:
+        return
+    if not any(name.casefold() in installed for name in ZH_BODY_FONTS):
+        print(
+            f"warning: no Chinese font installed (looked for {', '.join(ZH_BODY_FONTS)}); "
+            "Chinese text may not render. Install one or pass --font.",
+            file=sys.stderr,
+        )
+
+
 def build(book_dir: Path, opts: BuildOptions) -> Path:
     started = time.time()
     book = load_book(book_dir, include_drafts=opts.include_drafts)
@@ -196,7 +259,9 @@ def build(book_dir: Path, opts: BuildOptions) -> Path:
 
         (workdir / "body.md").write_text(render_markdown(book, assets), encoding="utf-8")
         shutil.copyfile(TEMPLATES / "book.typ", workdir / "book.typ")
-        (workdir / "main.typ").write_text(render_main_typ(book, opts, cover, backcover), encoding="utf-8")
+        installed = installed_fonts(opts.font_paths)
+        _warn_missing_cjk_font(book, opts, installed)
+        (workdir / "main.typ").write_text(render_main_typ(book, opts, cover, backcover, installed), encoding="utf-8")
 
         _run(
             [

@@ -43,6 +43,13 @@ def test_internal_links_become_plain_text():
     assert out == "定义 与 上一章 以及 [外链](https://x.io/a/)"
 
 
+def test_preprocess_handles_relref_before_dropping_shortcodes(tmp_path: Path):
+    out = preprocess(
+        '见 [基础]({{< relref "basics" >}})。', chapter_dir=tmp_path, title_level=1, lang="zh-hans", resolve_image=lambda s: None
+    )
+    assert out == "见 基础。\n"
+
+
 def test_image_attribute_block_removed():
     assert strip_image_attributes("![a](x.svg){width=800 height=600}") == "![a](x.svg)"
 

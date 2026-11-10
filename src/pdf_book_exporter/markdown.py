@@ -223,8 +223,9 @@ def preprocess(body: str, *, chapter_dir: Path, title_level: int, lang: str, res
     body = convert_details(body)
     body = convert_figures(body)
     body = convert_videos(body, lang)
-    body = drop_shortcodes(body)
+    # Before drop_shortcodes, which would otherwise turn [x]({{< relref >}}) into an empty link.
     body = convert_links(body)
+    body = drop_shortcodes(body)
     body = strip_image_attributes(body)
     body = rewrite_images(body, resolve_image)
     body = normalize_math(body)

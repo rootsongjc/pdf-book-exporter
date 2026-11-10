@@ -196,19 +196,12 @@
   show-figure-numbers: true,
   toc-depth: 2,
   paper: "a4",
+  // font / monofont: fallback chains supplied by build.py, already reduced to installed families.
   font: (),
   monofont: (),
   body,
 ) = {
   let zh = is-zh(lang)
-  let body-font = if font.len() > 0 { font } else if zh {
-    ("Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", "Noto Sans")
-  } else {
-    ("Noto Sans", "Helvetica Neue", "Arial", "Noto Sans CJK SC")
-  }
-  let mono-font = if monofont.len() > 0 { monofont } else {
-    ("JetBrains Mono", "Menlo", "DejaVu Sans Mono", "Consolas", "Noto Sans Mono CJK SC")
-  }
   let margin = (top: 2.4cm, bottom: 2.4cm, inside: 2.6cm, outside: 2.2cm)
   let page-w = if paper == "us-letter" { 8.5in } else { 210mm }
   let page-h = if paper == "us-letter" { 11in } else { 297mm }
@@ -217,9 +210,9 @@
 
   set document(title: title, author: author)
   set page(paper: paper, margin: margin)
-  set text(font: body-font, size: 10.5pt, lang: lang, region: region, fill: ink, fallback: true)
+  set text(font: font, size: 10.5pt, lang: lang, region: region, fill: ink, fallback: true)
   set par(justify: true, leading: 0.85em, spacing: 1.1em)
-  show raw: set text(font: mono-font, size: 0.92em)
+  show raw: set text(font: monofont, size: 0.92em)
 
   // ---- headings -----------------------------------------------------------
   set heading(numbering: heading-number)
@@ -351,6 +344,10 @@
   set list(indent: 0.8em, spacing: 0.75em)
   set enum(indent: 0.8em, spacing: 0.75em)
   set terms(hanging-indent: 1.5em)
+  // `strong` adds its delta (300 by default) on top of the current weight, so a bare
+  // `set text(weight: 700)` would land on 1000 and render Black. Zero the delta and pin
+  // strong text to Bold everywhere, including inside headings and table headers.
+  set strong(delta: 0)
   show strong: set text(weight: 700)
 
   // ---- front matter -------------------------------------------------------
