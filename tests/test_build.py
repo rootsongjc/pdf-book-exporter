@@ -70,6 +70,25 @@ def test_numbering_restarts_in_every_chapter(sectioned_book: Path, tmp_path: Pat
 
 
 @needs_tools
+def test_colophon_names_the_translator_and_pages_share_one_text_block(sectioned_book: Path, tmp_path: Path):
+    pypdf = pytest.importorskip("pypdf")
+    index = sectioned_book / "_index.md"
+    index.write_text(index.read_text(encoding="utf-8").replace("book:\n", "authors: [原作者]\nbook:\n  translator: 译者甲\n"), encoding="utf-8")
+    reader = pypdf.PdfReader(build(sectioned_book, BuildOptions(output=tmp_path / "t.pdf", offline=True, no_cover=True)))
+    colophon = "".join(reader.pages[1].extract_text().split())
+    assert "作者原作者" in colophon and "译者译者甲" in colophon
+
+    def left_edge(page) -> float:
+        xs: list[float] = []
+        # Typst positions each text run through the transformation matrix; the text matrix stays at the origin.
+        page.extract_text(visitor_text=lambda text, cm, tm, font, size: xs.append(cm[4] + tm[4]) if text.strip() else None)
+        return round(min(xs), 1)
+
+    # The colophon (even page) and the contents (odd page) start at the same x: no inside/outside margin shift.
+    assert left_edge(reader.pages[1]) == left_edge(reader.pages[2])
+
+
+@needs_tools
 def test_horizontal_rule_uses_template_function(parted_book: Path, tmp_path: Path):
     (parted_book / "intro" / "index.md").write_text("---\ntitle: 前言\nweight: 1\n---\n\n上\n\n---\n\n下\n", encoding="utf-8")
     workdir = tmp_path / "work"

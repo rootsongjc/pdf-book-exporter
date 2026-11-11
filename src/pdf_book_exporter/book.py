@@ -70,6 +70,7 @@ class BookConfig:
     title: str
     subtitle: str
     author: str
+    translator: str
     language: str
     description: str
     website: str
@@ -223,12 +224,22 @@ def _date_str(value: Any) -> str:
     return str(value)[:10]
 
 
+def _names(value: Any) -> str:
+    """A person field given as one name or a list of names."""
+    if isinstance(value, (list, tuple)):
+        return ", ".join(str(v) for v in value if v not in (None, ""))
+    return "" if value is None else str(value)
+
+
 def load_config(book_dir: Path, meta: dict[str, Any], intro: str = "") -> BookConfig:
     book = meta.get("book") if isinstance(meta.get("book"), dict) else {}
-    authors = meta.get("authors") or []
-    if isinstance(authors, str):
-        authors = [authors]
-    author = _first(book.get("author"), meta.get("author"), ", ".join(map(str, authors)))
+    author = _first(book.get("author"), meta.get("author"), _names(meta.get("authors")))
+    translator = _first(
+        _names(book.get("translator")),
+        _names(book.get("translators")),
+        _names(meta.get("translators")),
+        _names(meta.get("translator")),
+    )
     date = _date_str(_first(book.get("date"), meta.get("date")))
     title = _first(book.get("title"), meta.get("title"), book_dir.name)
     cover_text = {
@@ -255,6 +266,7 @@ def load_config(book_dir: Path, meta: dict[str, Any], intro: str = "") -> BookCo
         title=str(title),
         subtitle=str(_first(book.get("subtitle"))),
         author=str(author),
+        translator=str(translator),
         language=language,
         description=str(_first(book.get("description"), meta.get("description"))),
         website=str(_first(book.get("website"), meta.get("website"))),

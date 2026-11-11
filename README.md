@@ -129,25 +129,27 @@ covers usually already carry the title, so the text overlay is off unless
 
 ### `_index.md` front matter
 
-Top-level Hugo fields (`title`, `authors`, `description`, `date`, `publisher`,
-`website`, `cover`, `language`) are used as-is. The optional `book:` block
+Top-level Hugo fields (`title`, `authors`, `translators`, `description`, `date`,
+`publisher`, `website`, `cover`, `language`) are used as-is. The optional `book:` block
 overrides them and carries the PDF-only settings. Every key is optional; the
 values below are the defaults unless noted.
 
 ```yaml
 title: AI 原生基础设施
 authors: [Jimmy Song]
+translators: [译者甲，译者乙]            # optional; adds 译者 / Translator to the colophon
 publisher: jimmysong.io
 description: 一段用于版权页的简介
 date: 2025-11-10                        # shown as 版本 / Edition on the colophon
 parts:                                  # optional; chapters reference them via part_id
   - { id: part-i, title: "Part I · 定义", order: 1 }
-  - { id: part-appendix, title: 附录, order: 2 }   # id or title matching appendix|附录 → A, B, ...
+  - { id: part-appendix, title: 附录，order: 2 }   # id or title matching appendix|附录 → A, B, ...
 book:
   # metadata overrides
   title: 封面以外都用这个标题
   subtitle: 副标题                       # title page / cover overlay
   author: Jimmy Song                    # default: authors joined with ", "
+  translator: Jimmy Song                # default: translators joined with ", "; a list also works
   language: zh-hans                     # default: inferred from the path (/zh/, /en/), else zh-hans
   website: https://jimmysong.io/book/ai-native-infra
   description: 覆盖顶层 description

@@ -186,6 +186,7 @@ def render_main_typ(
   title: {typ_str(cfg.title)},
   subtitle: {typ_str(cfg.subtitle)},
   author: {typ_str(cfg.author)},
+  translator: {typ_str(cfg.translator)},
   publisher: {typ_str(cfg.publisher)},
   website: {typ_str(cfg.website)},
   description: {typ_str(cfg.description)},

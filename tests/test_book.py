@@ -103,6 +103,21 @@ def test_sections_as_parts(sectioned_book: Path):
     assert book.parts[0].intro.strip().startswith("本部分介绍")
 
 
+def test_translator_from_site_field_or_book_block(parted_book: Path):
+    index = parted_book / "_index.md"
+    text = index.read_text(encoding="utf-8")
+    assert load_book(parted_book).config.translator == ""
+
+    index.write_text(text.replace("publisher:", "translators:\n  - 宋净超\n  - 马若飞\npublisher:"), encoding="utf-8")
+    assert load_book(parted_book).config.translator == "宋净超, 马若飞"
+
+    # The PDF-only book block wins over the site-wide field.
+    index.write_text(
+        text.replace("publisher:", "translators: [宋净超]\nbook:\n  translator: Jimmy Song\npublisher:"), encoding="utf-8"
+    )
+    assert load_book(parted_book).config.translator == "Jimmy Song"
+
+
 def test_language_inferred_from_path(tmp_path: Path):
     book = tmp_path / "content" / "en" / "book" / "x"
     book.mkdir(parents=True)

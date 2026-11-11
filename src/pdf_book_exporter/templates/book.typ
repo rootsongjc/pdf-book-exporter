@@ -152,7 +152,7 @@
   ]
 }
 
-#let title-page(title, subtitle, author, publisher, lang) = {
+#let title-page(title, subtitle, author, translator, publisher, lang) = {
   page(header: none, footer: none, numbering: none)[
     #v(1fr)
     #align(center)[
@@ -165,6 +165,10 @@
       #line(length: 30%, stroke: 0.5pt + accent)
       #v(3em)
       #text(size: 15pt)[#author]
+      #if translator != "" [
+        #v(0.6em)
+        #text(size: 12pt, fill: muted)[#if is-zh(lang) [#translator 译] else [Translated by #translator]]
+      ]
     ]
     #v(2fr)
     #if publisher != "" [
@@ -173,11 +177,17 @@
   ]
 }
 
-#let colophon-page(title, author, publisher, website, description, date, exported, lang) = {
-  let row(k, v) = if v != "" [
-    #text(fill: muted, size: 9.5pt)[#k] #h(1em) #text(size: 9.5pt)[#v] \
-  ]
+#let colophon-page(title, author, translator, publisher, website, description, date, exported, lang) = {
   let zh = is-zh(lang)
+  let rows = (
+    (if zh [书名] else [Title], title),
+    (if zh [作者] else [Author], author),
+    (if zh [译者] else [Translator], translator),
+    (if zh [出版] else [Publisher], publisher),
+    (if zh [网址] else [Website], website),
+    (if zh [版本] else [Edition], date),
+    (if zh [导出时间] else [Exported], exported),
+  ).filter(r => r.at(1) != "")
   page(header: none, footer: none, numbering: none)[
     #v(1fr)
     #if description != "" [
@@ -187,13 +197,15 @@
       ]
     ]
     #block(width: 100%, stroke: (top: 0.5pt + rule), inset: (top: 1.2em))[
-      #set par(leading: 0.8em)
-      #row(if zh [书名] else [Title], title)
-      #row(if zh [作者] else [Author], author)
-      #row(if zh [出版] else [Publisher], publisher)
-      #row(if zh [网址] else [Website], website)
-      #row(if zh [版本] else [Edition], date)
-      #row(if zh [导出时间] else [Exported], exported)
+      #set text(size: 9.5pt)
+      #set par(justify: false)
+      // Two columns, so the values line up whatever the label widths are.
+      #grid(
+        columns: (auto, 1fr),
+        column-gutter: 1.2em,
+        row-gutter: 0.8em,
+        ..rows.map(r => (text(fill: muted, r.at(0)), r.at(1))).flatten(),
+      )
     ]
   ]
 }
@@ -202,6 +214,7 @@
   title: "",
   subtitle: "",
   author: "",
+  translator: "",
   publisher: "",
   website: "",
   description: "",
@@ -224,10 +237,12 @@
   body,
 ) = {
   let zh = is-zh(lang)
-  let margin = (top: 2.4cm, bottom: 2.4cm, inside: 2.6cm, outside: 2.2cm)
+  // Same margin left and right: the text block sits at the same place on every page, so
+  // the contents list and the body do not jump sideways between odd and even pages.
+  let margin = (top: 2.4cm, bottom: 2.4cm, x: 2.4cm)
   let page-w = if paper == "us-letter" { 8.5in } else { 210mm }
   let page-h = if paper == "us-letter" { 11in } else { 297mm }
-  let text-w = page-w - margin.inside - margin.outside
+  let text-w = page-w - 2 * margin.x
   let text-h = page-h - margin.top - margin.bottom
 
   set document(title: title, author: author)
@@ -282,7 +297,12 @@
       v(1.2em, weak: true)
       let is-part = it.element.supplement == part-marker
       set text(weight: 700, fill: if is-part { accent } else { ink })
-      if is-part { it.indented(none, it.body()) } else { link(it.element.location(), it.indented(prefix, it.inner())) }
+      if is-part {
+        // sticky: a part title never ends a page with its chapters on the next one.
+        block(sticky: true, it.indented(none, it.body()))
+      } else {
+        link(it.element.location(), it.indented(prefix, it.inner()))
+      }
     } else {
       v(0.7em, weak: true)
       link(it.element.location(), it.indented(prefix, it.inner()))
@@ -371,8 +391,8 @@
   show strong: set text(weight: 700)
 
   // ---- front matter -------------------------------------------------------
-  if cover != none { cover-page(cover, cover-text) } else { title-page(title, subtitle, author, publisher, lang) }
-  colophon-page(title, author, publisher, website, description, date, exported, lang)
+  if cover != none { cover-page(cover, cover-text) } else { title-page(title, subtitle, author, translator, publisher, lang) }
+  colophon-page(title, author, translator, publisher, website, description, date, exported, lang)
 
   set page(
     numbering: "i",
