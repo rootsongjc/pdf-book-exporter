@@ -148,9 +148,15 @@ def convert_links(body: str) -> str:
     return body
 
 
+# Captions can contain bracketed citations or escaped brackets.
+_IMAGE_CAPTION = r"(?:[^\[\]\\]|\\.|\[(?:[^\[\]\\]|\\.)*\])*"
+_IMAGE_RE = re.compile(rf"!\[({_IMAGE_CAPTION})\]\(([^)]+)\)")
+_IMAGE_ATTRIBUTES_RE = re.compile(rf"({_IMAGE_RE.pattern})\s*\{{[^}}]*\}}")
+
+
 def strip_image_attributes(body: str) -> str:
     # Hugo render hooks accept ![](x.png){width=800 height=600}; Pandoc would apply them literally.
-    return re.sub(r"(!\[[^\]]*\]\([^)]*\))\s*\{[^}]*\}", r"\1", body)
+    return _IMAGE_ATTRIBUTES_RE.sub(r"\1", body)
 
 
 def rewrite_images(body: str, resolve: ResolveImage) -> str:
@@ -164,7 +170,7 @@ def rewrite_images(body: str, resolve: ResolveImage) -> str:
             return f"*{alt}*" if alt else ""
         return f"![{alt}]({target})"
 
-    return re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", repl, body)
+    return _IMAGE_RE.sub(repl, body)
 
 
 _FENCE_RE = re.compile(r"^(`{3,}|~{3,})[^\n]*\n.*?^\1[ \t]*$", re.S | re.M)

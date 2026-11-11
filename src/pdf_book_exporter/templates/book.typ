@@ -42,12 +42,27 @@
 }
 
 // Parts are level-1 headings without numbering so they appear in the
-// outline but do not advance the chapter counter.
+// outline but do not advance the chapter counter. A part gets a divider page
+// of its own; an optional introduction sits under the title.
 #let part-marker = [Part]
 #let appendix-mode = state("pbe-appendix", false)
 
-#let part(title) = {
-  heading(level: 1, numbering: none, outlined: true, bookmarked: true, supplement: part-marker)[#title]
+#let part(title, ..intro) = {
+  pagebreak(weak: true)
+  align(center + horizon, block(width: 100%)[
+    #align(center, line(length: 18%, stroke: 1pt + accent))
+    #v(1.2em)
+    #heading(level: 1, numbering: none, outlined: true, bookmarked: true, supplement: part-marker)[#title]
+    #if intro.pos().len() > 0 {
+      v(1.6em)
+      block(width: 78%)[
+        #set align(left)
+        #set text(fill: muted)
+        #intro.pos().first()
+      ]
+    }
+  ])
+  pagebreak(weak: true)
 }
 
 // Everything after this call is numbered A, A.1, ... and labelled as an appendix.
@@ -70,6 +85,13 @@
 #let figure-number(n) = context {
   let chapter = counter(heading).get().first()
   numbering(if appendix-mode.get() { "A-1" } else { "1-1" }, chapter, n)
+}
+
+// Figures, tables and footnotes are numbered per chapter.
+#let reset-chapter-counters() = {
+  counter(figure.where(kind: image)).update(0)
+  counter(figure.where(kind: table)).update(0)
+  counter(footnote).update(0)
 }
 
 // Thematic break (Markdown `---`), emitted by the Lua filter.
@@ -218,14 +240,8 @@
   set heading(numbering: heading-number)
   show heading.where(level: 1): it => {
     if it.numbering == none and it.supplement == part-marker {
-      // Part divider page.
-      pagebreak(weak: true)
-      align(center + horizon, block(width: 100%)[
-        #align(center, line(length: 18%, stroke: 1pt + accent))
-        #v(1.2em)
-        #text(size: 28pt, weight: 700)[#it.body]
-      ])
-      pagebreak(weak: true)
+      // Title of a part divider page; `part` lays out the page around it.
+      block(text(size: 28pt, weight: 700)[#it.body])
     } else if it.numbering == none {
       // Unnumbered level-1 heading (not a part): plain chapter-style title.
       pagebreak(weak: true)
@@ -233,8 +249,7 @@
       block(below: 1.6em, text(size: 24pt, weight: 700)[#it.body])
     } else {
       pagebreak(weak: true)
-      counter(figure.where(kind: image)).update(0)
-      counter(figure.where(kind: table)).update(0)
+      reset-chapter-counters()
       v(2.5cm)
       block(below: 1.6em)[
         #if show-chapter-prefix [
@@ -275,7 +290,12 @@
   }
 
   // ---- figures, tables, code, quotes, links ------------------------------
-  set figure(gap: 0.9em, numbering: if show-figure-numbers { figure-number } else { none })
+  // The chapter prefix (3-2) only helps when chapter numbers are printed; without them figures count 1, 2, ...
+  let chapter-numbers-shown = show-chapter-prefix or show-section-numbers
+  set figure(
+    gap: 0.9em,
+    numbering: if not show-figure-numbers { none } else if chapter-numbers-shown { figure-number } else { "1" },
+  )
   show figure: set block(above: 1.4em, below: 1.4em)
   show figure.caption: set text(size: 9pt, fill: muted)
   show figure.caption: set par(justify: false)

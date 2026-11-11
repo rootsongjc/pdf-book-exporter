@@ -61,6 +61,8 @@ class Part:
     id: str
     title: str
     chapters: list[Chapter] = field(default_factory=list)
+    intro: str = ""  # Markdown shown under the title on the part page
+    directory: Path | None = None  # resolves images in the intro
 
 
 @dataclass
@@ -153,17 +155,35 @@ def _content_lang(book_dir: Path, site_root: Path) -> str | None:
     return rel[0] if len(rel) > 1 else None
 
 
-def discover_cover(book_dir: Path, language: str) -> str | None:
+CONTENT_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^ )]+)\)")
+
+
+def _content_cover(book_dir: Path, intro: str) -> str | None:
+    """First image in the book's index page whose Markdown (alt text or path) says it is a cover."""
+    for m in CONTENT_IMAGE_RE.finditer(intro):
+        if "cover" in m.group(0).lower() or "封面" in m.group(0):
+            found = _resolve_asset(book_dir, m.group(1))
+            if found:
+                return found
+    return None
+
+
+def discover_cover(book_dir: Path, language: str, intro: str = "") -> str | None:
     """Default cover lookup, in order:
 
     1. cover.<ext> / cover-<lang>.<ext> inside the book directory
     2. Hugo site: static/images/book-covers/<slug>.webp
     3. Hugo site: data/<lang>/book_covers.yaml → URL keyed by slug
+    4. the cover image shown in the book's index page
     """
     short = language.split("-")[0]
     local = _first_existing(book_dir, (f"cover-{short}", "cover"))
     if local:
         return local
+    return _site_cover(book_dir, short) or _content_cover(book_dir, intro)
+
+
+def _site_cover(book_dir: Path, short: str) -> str | None:
     site = find_site_root(book_dir)
     if site is None:
         return None
@@ -203,7 +223,7 @@ def _date_str(value: Any) -> str:
     return str(value)[:10]
 
 
-def load_config(book_dir: Path, meta: dict[str, Any]) -> BookConfig:
+def load_config(book_dir: Path, meta: dict[str, Any], intro: str = "") -> BookConfig:
     book = meta.get("book") if isinstance(meta.get("book"), dict) else {}
     authors = meta.get("authors") or []
     if isinstance(authors, str):
@@ -226,7 +246,7 @@ def load_config(book_dir: Path, meta: dict[str, Any]) -> BookConfig:
         "overlay": _truthy(book.get("cover_overlay_enabled"), False),
     }
     language = infer_language(book_dir, _first(book.get("language"), meta.get("language")))
-    cover = _resolve_asset(book_dir, _first(book.get("cover"), meta.get("cover"))) or discover_cover(book_dir, language)
+    cover = _resolve_asset(book_dir, _first(book.get("cover"), meta.get("cover"))) or discover_cover(book_dir, language, intro)
     backcover = _resolve_asset(book_dir, _first(book.get("backcover"), book.get("backcover_image"))) or discover_backcover(
         book_dir, language
     )
@@ -320,10 +340,20 @@ def load_book(book_dir: Path, include_drafts: bool = False) -> Book:
     if not index.exists():
         raise BookError(f"{book_dir} is not a Hugo book: no _index.md found")
     meta, intro = read_page(index)
-    config = load_config(book_dir, meta)
+    config = load_config(book_dir, meta, intro)
     chapters = _collect(book_dir, include_drafts, depth=1)
     if not chapters:
         raise BookError(f"No chapters found under {book_dir}")
+
+    if _truthy(config.raw.get("sections_as_parts"), False):
+        # Top-level sections are the parts and their pages the chapters; pages without children stay chapters.
+        sections = [
+            Part(id=ch.directory.name, title=ch.title, chapters=ch.children, intro=ch.body, directory=ch.directory)
+            for ch in chapters
+            if ch.children
+        ]
+        loose = [ch for ch in chapters if not ch.children]
+        return Book(directory=book_dir, config=config, intro=intro, parts=sections, loose_chapters=loose)
 
     part_defs = meta.get("parts") or []
     parts: list[Part] = []

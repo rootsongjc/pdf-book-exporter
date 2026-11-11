@@ -2,6 +2,7 @@
 --
 --   ::: {.callout type="note" title="..."}  ->  #callout(kind: "note", title: [...])[ ... ]
 --   ::: {.table-title title="..."}          ->  caption on the wrapped table
+--   ::: {.part title="..."}                 ->  #part([...])[ part introduction ]
 
 local function typst_string(s)
   return '"' .. s:gsub('\\', '\\\\'):gsub('"', '\\"') .. '"'
@@ -22,6 +23,14 @@ function Div(div)
         pandoc.read(title, 'commonmark').blocks)) .. ']'
     end
     local blocks = pandoc.List({ pandoc.RawBlock('typst', head .. ')[') })
+    blocks:extend(div.content)
+    blocks:insert(pandoc.RawBlock('typst', ']'))
+    return blocks
+  end
+
+  if div.classes:includes('part') then
+    local title = inlines_to_typst(pandoc.Inlines({ pandoc.Str(div.attributes['title'] or '') }))
+    local blocks = pandoc.List({ pandoc.RawBlock('typst', '#part([' .. title .. '])[') })
     blocks:extend(div.content)
     blocks:insert(pandoc.RawBlock('typst', ']'))
     return blocks

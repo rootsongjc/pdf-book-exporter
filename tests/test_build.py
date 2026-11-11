@@ -52,6 +52,24 @@ def test_build_parts_and_appendix(parted_book: Path, tmp_path: Path):
 
 
 @needs_tools
+def test_numbering_restarts_in_every_chapter(sectioned_book: Path, tmp_path: Path):
+    pypdf = pytest.importorskip("pypdf")
+    out = build(sectioned_book, BuildOptions(output=tmp_path / "sections.pdf", offline=True, no_cover=True))
+    reader = pypdf.PdfReader(out)
+    titles = [o.title for o in reader.outline if hasattr(o, "title")]
+    assert titles == ["1 前言", "系统基础", "2 第 1 章", "3 第 2 章", "附录", "A 术语表"]
+
+    pages = ["".join(p.extract_text().split()) for p in reader.pages]
+    part = next(t for t in pages if "本部分介绍基础" in t)
+    assert "系统基础" in part and "section-toc" not in part
+    text = "".join(pages)
+    assert "1甲注" in text and "2乙注" in text
+    # Chapter 2 starts over; chapter numbers are hidden, so figures carry no chapter prefix either.
+    assert "1丙注" in text and "3丙注" not in text
+    assert text.index("图1甲图") < text.index("图2乙图") < text.index("图1丙图")
+
+
+@needs_tools
 def test_horizontal_rule_uses_template_function(parted_book: Path, tmp_path: Path):
     (parted_book / "intro" / "index.md").write_text("---\ntitle: 前言\nweight: 1\n---\n\n上\n\n---\n\n下\n", encoding="utf-8")
     workdir = tmp_path / "work"

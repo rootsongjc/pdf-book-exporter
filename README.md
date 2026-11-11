@@ -8,8 +8,9 @@ The pipeline is deliberately short: **Markdown → Pandoc → Typst → PDF**. A
 image conversion step.
 
 - Chapters ordered by `weight`, one level of nested sub-chapters, optional
-  *parts* declared in the book's `_index.md`, and an appendix part numbered
-  `A`, `A.1`, `图 A-1`
+  *parts* declared in the book's `_index.md` (or taken from the top-level
+  sections), and an appendix part numbered `A`, `A.1`, `图 A-1`
+- Figures, tables and footnotes numbered per chapter
 - Hugo shortcodes mapped to print equivalents (`callout`, `table`, `figure`,
   `details`, `inline-codes`, `youtube`/`bilibili`); web-only ones removed
 - SVG, PNG, JPEG, GIF and WebP images embedded natively; remote images
@@ -118,6 +119,8 @@ The first match wins:
 4. In a Hugo site (a parent directory with `hugo.toml`/`config/` and
    `content/`): `static/images/book-covers/<slug>.*`, then the URL under
    `<slug>` in `data/<lang>/book_covers.yaml`
+5. The cover shown in the book's `_index.md` body: the first image whose alt
+   text or path contains `cover` or `封面`
 
 Without a cover image a plain typeset title page is used instead. Generated
 covers usually already carry the title, so the text overlay is off unless
@@ -175,6 +178,7 @@ book:
   show_toc_numbers: true
   show_figure_numbers: true             # 图 1-1 / Figure 1-1, 表 1-1 / Table 1-1
   toc_depth: 2
+  sections_as_parts: false              # see Parts
   papersize: a4                         # a4 | us-letter
   font: "Noto Sans CJK SC, Noto Sans"   # default: language preset (see Fonts)
   monofont: "JetBrains Mono, Menlo"
@@ -182,6 +186,28 @@ book:
 
 Chapter pages (`index.md`) use `title`, `weight`, `part_id`, `draft`,
 `export_pdf` and `status`; everything else in their front matter is ignored.
+
+### Numbering
+
+Figure, table and footnote numbers start again at 1 in every chapter. Figures
+and tables carry the chapter number (`图 3-2`) as long as chapter numbers are
+printed; with both `show_chapter_prefix` and `show_section_numbers` off they
+are numbered `图 1`, `图 2`, … within the chapter.
+
+### Parts
+
+Parts come from one of two places:
+
+- `parts` in `_index.md`, with each chapter naming its part through `part_id`
+  (see above).
+- `book.sections_as_parts: true`, for books whose directory layout already is
+  part → chapter: every top-level section with child pages becomes a part and
+  its pages become the chapters. The section's own `_index.md` body is printed
+  on the part page as an introduction. Top-level pages without children stay
+  chapters in front of the first part; `parts`/`part_id` are ignored.
+
+Without this option a top-level section is one chapter and its pages are
+sub-chapters, so numbering restarts per section rather than per page.
 
 ### Shortcode mapping
 

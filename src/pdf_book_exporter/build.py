@@ -114,13 +114,29 @@ def _chapter_markdown(chapter: Chapter, level: int, assets: Assets, lang: str) -
 APPENDIX_RE = re.compile(r"appendix|附录", re.I)
 
 
-def _part_block(part: Part) -> str:
-    escaped = part.title.replace("\\", "\\\\").replace("]", "\\]").replace("#", "\\#")
-    lines = [f"#part[{escaped}]"]
+def _part_block(part: Part, assets: Assets, lang: str) -> str:
+    intro = ""
+    if part.intro.strip() and part.directory is not None:
+        intro = preprocess(
+            part.intro,
+            chapter_dir=part.directory,
+            title_level=1,
+            lang=lang,
+            resolve_image=assets.resolver(part.directory),
+        ).strip()
+    lines = []
+    head = ""
+    if intro:
+        # hugo.lua turns the div into #part([title])[intro]; the long fence lets the intro hold its own divs.
+        title = part.title.replace("\\", "\\\\").replace('"', '\\"')
+        head = f'::::::: {{.part title="{title}"}}\n{intro}\n:::::::\n\n'
+    else:
+        escaped = part.title.replace("\\", "\\\\").replace("]", "\\]").replace("#", "\\#")
+        lines.append(f"#part[{escaped}]")
     if APPENDIX_RE.search(part.id) or APPENDIX_RE.search(part.title):
         lines.append("#appendix()")
         lines.append("#set heading(numbering: appendix-heading-number)")
-    return "```{=typst}\n" + "\n".join(lines) + "\n```\n"
+    return head + ("```{=typst}\n" + "\n".join(lines) + "\n```\n" if lines else "")
 
 
 def render_markdown(book: Book, assets: Assets) -> str:
@@ -129,7 +145,7 @@ def render_markdown(book: Book, assets: Assets) -> str:
     for chapter in book.loose_chapters:
         chunks.append(_chapter_markdown(chapter, 1, assets, lang))
     for part in book.parts:
-        chunks.append(_part_block(part))
+        chunks.append(_part_block(part, assets, lang))
         for chapter in part.chapters:
             chunks.append(_chapter_markdown(chapter, 1, assets, lang))
     return "\n\n".join(chunks) + "\n"

@@ -68,6 +68,41 @@ def test_cover_discovered_from_hugo_site(tmp_path: Path):
     assert load_book(book).config.cover == str(book / "cover.png")
 
 
+def test_cover_falls_back_to_the_cover_image_in_the_index_page(tmp_path: Path):
+    book = tmp_path / "site" / "content" / "zh" / "book" / "demo"
+    (tmp_path / "site" / "config").mkdir(parents=True)
+    (book / "a").mkdir(parents=True)
+    (book / "a" / "index.md").write_text("---\ntitle: A\n---\nbody\n", encoding="utf-8")
+    index = book / "_index.md"
+
+    index.write_text("---\ntitle: Demo\n---\n![架构图](https://cdn.example.com/arch.png)\n", encoding="utf-8")
+    assert load_book(book).config.cover is None
+
+    index.write_text(
+        "---\ntitle: Demo\n---\n![架构图](https://cdn.example.com/arch.png)\n\n"
+        "![《Demo》中文版封面](https://cdn.example.com/demo-zh.webp)\n",
+        encoding="utf-8",
+    )
+    assert load_book(book).config.cover == "https://cdn.example.com/demo-zh.webp"
+
+    # A generated site cover still wins over the image in the page.
+    (tmp_path / "site" / "data" / "zh").mkdir(parents=True)
+    (tmp_path / "site" / "data" / "zh" / "book_covers.yaml").write_text(
+        "demo: https://cdn.example.com/demo/cover-zh.webp\n", encoding="utf-8"
+    )
+    assert load_book(book).config.cover == "https://cdn.example.com/demo/cover-zh.webp"
+
+
+def test_sections_as_parts(sectioned_book: Path):
+    book = load_book(sectioned_book)
+    assert [c.title for c in book.loose_chapters] == ["前言"]
+    assert [(p.title, [c.title for c in p.chapters]) for p in book.parts] == [
+        ("系统基础", ["第 1 章", "第 2 章"]),
+        ("附录", ["术语表"]),
+    ]
+    assert book.parts[0].intro.strip().startswith("本部分介绍")
+
+
 def test_language_inferred_from_path(tmp_path: Path):
     book = tmp_path / "content" / "en" / "book" / "x"
     book.mkdir(parents=True)

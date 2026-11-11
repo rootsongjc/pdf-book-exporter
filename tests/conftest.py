@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -34,4 +35,28 @@ def parted_book(tmp_path: Path) -> Path:
     write(book / "glossary" / "index.md", "title: 术语表\nweight: 90\npart_id: part-appendix", "术语")
     (book / "README.md").write_text("# GitBook leftover\n", encoding="utf-8")
     (book / "image-caches").mkdir()
+    return book
+
+
+@pytest.fixture
+def sectioned_book(tmp_path: Path) -> Path:
+    """A book whose top-level sections group the chapters (`book.sections_as_parts`)."""
+    book = tmp_path / "zh" / "book" / "sections"
+    write(book / "_index.md", "title: 分部手册\nbook:\n  sections_as_parts: true\n  show_chapter_prefix: false\n  show_section_numbers: false")
+    write(book / "preface" / "index.md", "title: 前言\nweight: 1", "开场")
+    write(book / "foundations" / "_index.md", "title: 系统基础\nweight: 2", "本部分介绍基础。\n\n{{< section-toc >}}")
+    write(
+        book / "foundations" / "one" / "index.md",
+        "title: 第 1 章\nweight: 1",
+        "甲文[^a]，乙文[^b]。\n\n[^a]: 甲注\n\n[^b]: 乙注\n\n![甲图](one.jpg)\n\n![乙图](one.jpg)",
+    )
+    write(
+        book / "foundations" / "two" / "index.md",
+        "title: 第 2 章\nweight: 2",
+        "丙文[^c]。\n\n[^c]: 丙注\n\n![丙图](two.jpg)",
+    )
+    write(book / "appendix" / "_index.md", "title: 附录\nweight: 9")
+    write(book / "appendix" / "glossary" / "index.md", "title: 术语表\nweight: 1", "术语")
+    for name in ("one/one.jpg", "two/two.jpg"):
+        shutil.copyfile(EXAMPLE / "cover.jpg", book / "foundations" / name)
     return book

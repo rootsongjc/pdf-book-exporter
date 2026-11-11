@@ -81,3 +81,22 @@ def test_preprocess_resolves_images_and_drops_missing(tmp_path: Path):
     assert "![好图](img/ok.svg)" in out
     assert "missing.png" not in out and "*坏图*" in out
     assert seen == ["ok.svg", "missing.png"]
+
+
+def test_preprocess_stages_remote_image_with_bracketed_caption(tmp_path: Path):
+    url = "https://example.com/trends.webp"
+    seen = []
+
+    def resolve(src):
+        seen.append(src)
+        return "img/trends.webp"
+
+    out = preprocess(
+        f"![**算力增长**：\n来源：[epochai2023trends]。]({url})\n{{width=800 height=600}}",
+        chapter_dir=tmp_path,
+        title_level=1,
+        lang="zh-hans",
+        resolve_image=resolve,
+    )
+    assert out == "![**算力增长**：\n来源：[epochai2023trends]。](img/trends.webp)\n"
+    assert seen == [url]
